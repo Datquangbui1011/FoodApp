@@ -1,0 +1,105 @@
+import { IconSearch, IconMapPin } from '@tabler/icons-react';
+import TabBar from '../components/TabBar';
+
+const categories = ['🔥 Trending', 'Ramen', 'Pho', 'BBQ', 'Cafes'];
+
+const feedItems = [
+  {
+    id: 1,
+    name: 'Ramen Tatsu-ya',
+    sub: 'Japanese · Austin TX · spotted 24× this week',
+    badge: '🔥 Trending',
+    color: '#C5E8D8',
+  },
+  {
+    id: 2,
+    name: 'Pho Long Restaurant',
+    sub: 'Vietnamese · Lincoln NE · 0.8 mi away',
+    badge: '📍 Near you',
+    color: '#F5D9A0',
+  },
+  {
+    id: 3,
+    name: 'Uchi Austin',
+    sub: 'Japanese · Austin TX · spotted 18× this week',
+    badge: '🔥 Trending',
+    color: '#D5D2F5',
+  },
+];
+
+export default function Explore() {
+  return (
+    <div className="flex flex-col flex-1">
+      {/* Status bar */}
+      <div
+        className="flex justify-between items-center px-4 pt-3 pb-1.5"
+        style={{ background: 'white' }}
+      >
+        <span style={{ color: '#888780', fontSize: 10, fontWeight: 500 }}>9:41</span>
+        <span style={{ color: '#888780', fontSize: 10, fontWeight: 500 }}>▲▲▲ ▲</span>
+      </div>
+
+      {/* Header */}
+      <div className="px-3.5 pt-2.5 pb-2 border-b" style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+        <h2 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8, color: '#2C2C2A' }}>Explore</h2>
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5" style={{ scrollbarWidth: 'none' }}>
+          {categories.map((cat, i) => (
+            <span
+              key={cat}
+              className="px-2.5 py-1 rounded-full flex-shrink-0"
+              style={{
+                fontSize: 8,
+                fontWeight: 500,
+                whiteSpace: 'nowrap',
+                border: '1px solid rgba(0,0,0,0.1)',
+                background: i === 0 ? '#0F6E56' : 'white',
+                color: i === 0 ? 'white' : '#5F5E5A',
+                borderColor: i === 0 ? '#0F6E56' : 'rgba(0,0,0,0.1)',
+              }}
+            >
+              {cat}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Search bar */}
+      <div className="flex items-center gap-2 px-3.5 py-2">
+        <div
+          className="flex-1 flex items-center gap-1.5 rounded-full px-2.5 py-1.5"
+          style={{ background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)' }}
+        >
+          <IconSearch size={12} color="#888780" />
+          <span style={{ fontSize: 9, color: '#888780' }}>Search restaurants…</span>
+        </div>
+        <IconMapPin size={18} color="#0F6E56" />
+      </div>
+
+      {/* Feed */}
+      <div className="flex-1 overflow-y-auto px-2.5 pb-2">
+        {feedItems.map((item) => (
+          <div
+            key={item.id}
+            className="rounded-xl overflow-hidden mb-2"
+            style={{ border: '1px solid rgba(0,0,0,0.1)', background: 'white' }}
+          >
+            <div className="relative" style={{ height: 72, background: item.color }}>
+              <span
+                className="absolute top-1.5 left-1.5 rounded-full px-2 py-0.5"
+                style={{ background: 'rgba(15,110,86,0.9)', color: 'white', fontSize: 7, fontWeight: 500 }}
+              >
+                {item.badge}
+              </span>
+            </div>
+            <div className="px-2.5 py-2">
+              <p style={{ fontSize: 10, fontWeight: 500, color: '#2C2C2A', marginBottom: 2 }}>{item.name}</p>
+              <span style={{ fontSize: 8, color: '#888780' }}>{item.sub}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <TabBar />
+    </div>
+  );
+}
