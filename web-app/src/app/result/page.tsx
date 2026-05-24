@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
+import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import {
   IconArrowLeft,
@@ -23,6 +24,7 @@ interface Place {
   lat: number;
   lng: number;
   placeId: string;
+  rating?: number;
 }
 
 interface Result {
@@ -32,15 +34,55 @@ interface Result {
     cuisineType: string;
   };
   places: Place[];
+  videoUrl?: string;
 }
+
+interface SavedEntry {
+  id: number;
+  name: string;
+  cuisineType: string;
+  address: string;
+}
+
+const SAVED_KEY = 'foodmap_saved';
 
 export default function ResultPage() {
   const [result, setResult] = useState<Result | null>(null);
   const [saved, setSaved] = useState(false);
+  const userRef = useRef<{ id: string } | null>(null);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem('foodmap_result');
-    if (raw) setResult(JSON.parse(raw));
+    async function load() {
+      const raw = sessionStorage.getItem('foodmap_result');
+      if (!raw) return;
+      const parsed: Result = JSON.parse(raw);
+      setResult(parsed);
+
+      const p = parsed.places?.[0];
+      const t = parsed.inference?.topPick;
+      const name = p?.name ?? t?.name;
+      if (!name) return;
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      userRef.current = user;
+
+      if (user) {
+        const { data } = await supabase
+          .from('saved_restaurants')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('restaurant_name', name)
+          .maybeSingle();
+        setSaved(!!data);
+      } else {
+        try {
+          const savedItems: SavedEntry[] = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
+          setSaved(savedItems.some(s => s.name === name));
+        } catch {}
+      }
+    }
+    load();
   }, []);
 
   if (!result) {
@@ -64,6 +106,59 @@ export default function ResultPage() {
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.name + ' ' + place.address)}`
     : '#';
 
+  async function handleSaveToggle() {
+    const name = place?.name ?? top?.name;
+    if (!name || !result) return;
+    const user = userRef.current;
+
+    if (user) {
+      const supabase = createClient();
+      if (saved) {
+        await supabase.from('saved_restaurants')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('restaurant_name', name);
+      } else {
+        await supabase.from('saved_restaurants').upsert({
+          user_id: user.id,
+          restaurant_name: name,
+          cuisine_type: result.inference.cuisineType,
+          address: place?.address ?? top?.city ?? '',
+          lat: place?.lat ?? null,
+          lng: place?.lng ?? null,
+          video_url: result.videoUrl ?? null,
+          rating: place?.rating ?? null,
+        });
+      }
+    } else {
+      try {
+        const existing: SavedEntry[] = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
+        if (saved) {
+          localStorage.setItem(SAVED_KEY, JSON.stringify(existing.filter(s => s.name !== name)));
+        } else {
+          const entry: SavedEntry = {
+            id: Date.now(),
+            name,
+            cuisineType: result.inference.cuisineType,
+            address: place?.address ?? top?.city ?? '',
+          };
+          localStorage.setItem(SAVED_KEY, JSON.stringify([entry, ...existing]));
+        }
+      } catch {}
+    }
+    setSaved(s => !s);
+  }
+
+  async function handleShare() {
+    const name = place?.name ?? top?.name ?? 'a restaurant';
+    const shareUrl = mapsUrl !== '#' ? mapsUrl : window.location.href;
+    if (navigator.share) {
+      try { await navigator.share({ title: name, url: shareUrl }); } catch {}
+    } else {
+      try { await navigator.clipboard.writeText(shareUrl); } catch {}
+    }
+  }
+
   return (
     <div className="flex flex-col flex-1">
       {/* Status bar */}
@@ -74,7 +169,9 @@ export default function ResultPage() {
       <div className="flex items-center gap-2 px-3.5 pb-3 pt-2" style={{ background: '#0F6E56' }}>
         <Link href="/"><IconArrowLeft size={16} color="#9FE1CB" /></Link>
         <span style={{ color: 'white', fontSize: 13, fontWeight: 500, flex: 1 }}>Result</span>
-        <IconShare size={16} color="#9FE1CB" />
+        <button onClick={handleShare} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+          <IconShare size={16} color="#9FE1CB" />
+        </button>
       </div>
 
       {/* Live map */}
@@ -104,7 +201,7 @@ export default function ResultPage() {
               {result.inference.cuisineType} · {place?.address ?? top?.city ?? ''}
             </p>
           </div>
-          <button onClick={() => setSaved(s => !s)}>
+          <button onClick={handleSaveToggle}>
             {saved
               ? <IconHeartFilled size={20} color="#E24B4A" />
               : <IconHeart size={20} color="#D3D1C7" />}

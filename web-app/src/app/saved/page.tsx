@@ -1,15 +1,52 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import TabBar from '../components/TabBar';
+import { createClient } from '@/lib/supabase/client';
 
 const tabs = ['All', 'Collections', 'Notes'];
+const COLORS = ['#C5E8D8', '#D5D2F5', '#F5D9A0', '#F5C4B3'];
 
-const savedItems = [
-  { id: 1, name: 'Pho Hoa Dallas', sub: 'Vietnamese · ★ 4.2', color: '#C5E8D8' },
-  { id: 2, name: 'Ramen Tatsu-ya', sub: 'Japanese · ★ 4.7', color: '#D5D2F5' },
-  { id: 3, name: 'Uchi Austin', sub: 'Japanese · ★ 4.8', color: '#F5D9A0' },
-  { id: 4, name: 'Laos in Town', sub: 'Laotian · ★ 4.5', color: '#F5C4B3' },
-];
+interface SavedEntry {
+  id: string | number;
+  name: string;
+  cuisineType: string;
+  address: string;
+}
 
 export default function Saved() {
+  const [savedItems, setSavedItems] = useState<SavedEntry[]>([]);
+
+  useEffect(() => {
+    async function load() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data } = await supabase
+          .from('saved_restaurants')
+          .select('id, restaurant_name, cuisine_type, address')
+          .eq('user_id', user.id)
+          .order('saved_at', { ascending: false });
+
+        if (data) {
+          setSavedItems(data.map(row => ({
+            id: row.id,
+            name: row.restaurant_name,
+            cuisineType: row.cuisine_type ?? '',
+            address: row.address ?? '',
+          })));
+        }
+      } else {
+        try {
+          const raw = localStorage.getItem('foodmap_saved');
+          if (raw) setSavedItems(JSON.parse(raw));
+        } catch {}
+      }
+    }
+    load();
+  }, []);
+
   return (
     <div className="flex flex-col flex-1">
       {/* Status bar */}
@@ -43,23 +80,30 @@ export default function Saved() {
 
       {/* Grid */}
       <div className="flex-1 overflow-y-auto p-2.5">
-        <div className="grid grid-cols-2 gap-2">
-          {savedItems.map((item) => (
-            <div
-              key={item.id}
-              className="rounded-xl overflow-hidden"
-              style={{ border: '1px solid rgba(0,0,0,0.1)', background: 'white' }}
-            >
-              <div style={{ height: 58, background: item.color }} />
-              <div className="px-2 py-1.5">
-                <p style={{ fontSize: 9, fontWeight: 500, color: '#2C2C2A', marginBottom: 1 }}>
-                  {item.name}
-                </p>
-                <span style={{ fontSize: 7, color: '#888780' }}>{item.sub}</span>
+        {savedItems.length === 0 ? (
+          <div className="flex flex-col items-center justify-center pt-16 gap-2">
+            <p style={{ fontSize: 11, color: '#888780' }}>No saved restaurants yet.</p>
+            <p style={{ fontSize: 9, color: '#D3D1C7' }}>Tap the heart on any result to save it.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            {savedItems.map((item, i) => (
+              <div
+                key={item.id}
+                className="rounded-xl overflow-hidden"
+                style={{ border: '1px solid rgba(0,0,0,0.1)', background: 'white' }}
+              >
+                <div style={{ height: 58, background: COLORS[i % COLORS.length] }} />
+                <div className="px-2 py-1.5">
+                  <p style={{ fontSize: 9, fontWeight: 500, color: '#2C2C2A', marginBottom: 1 }}>
+                    {item.name}
+                  </p>
+                  <span style={{ fontSize: 7, color: '#888780' }}>{item.cuisineType}</span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <TabBar />

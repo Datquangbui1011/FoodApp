@@ -1,28 +1,43 @@
+import { redirect } from 'next/navigation';
 import {
   IconHistory,
   IconFolders,
   IconUserEdit,
   IconBell,
-  IconLogout,
   IconChevronRight,
 } from '@tabler/icons-react';
 import TabBar from '../components/TabBar';
-
-const stats = [
-  { num: 47, label: 'Searches' },
-  { num: 23, label: 'Saved' },
-  { num: 4, label: 'Collections' },
-];
+import SignOutButton from '../components/SignOutButton';
+import { createClient } from '@/lib/supabase/server';
 
 const menuItems = [
-  { icon: IconHistory, label: 'Search history', danger: false },
-  { icon: IconFolders, label: 'Collections', danger: false },
-  { icon: IconUserEdit, label: 'Edit profile', danger: false },
-  { icon: IconBell, label: 'Notifications', danger: false },
-  { icon: IconLogout, label: 'Sign out', danger: true },
+  { icon: IconHistory, label: 'Search history' },
+  { icon: IconFolders, label: 'Collections' },
+  { icon: IconUserEdit, label: 'Edit profile' },
+  { icon: IconBell, label: 'Notifications' },
 ];
 
-export default function Profile() {
+export default async function Profile() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) redirect('/auth');
+
+  const [{ count: searchCount }, { count: savedCount }] = await Promise.all([
+    supabase.from('recent_searches').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase.from('saved_restaurants').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+  ]);
+
+  const username = user.email?.split('@')[0] ?? 'user';
+  const initials = username.slice(0, 2).toUpperCase();
+  const memberYear = new Date(user.created_at).getFullYear();
+
+  const stats = [
+    { num: searchCount ?? 0, label: 'Searches' },
+    { num: savedCount ?? 0, label: 'Saved' },
+    { num: 0, label: 'Collections' },
+  ];
+
   return (
     <div className="flex flex-col flex-1">
       {/* Status bar */}
@@ -40,10 +55,10 @@ export default function Profile() {
           className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"
           style={{ background: '#1D9E75', border: '2.5px solid #9FE1CB', fontSize: 16, fontWeight: 600, color: 'white' }}
         >
-          DB
+          {initials}
         </div>
-        <p style={{ color: 'white', fontSize: 13, fontWeight: 600, marginBottom: 2 }}>Dat Bui</p>
-        <p style={{ color: '#9FE1CB', fontSize: 9 }}>@datbui · Member since 2026</p>
+        <p style={{ color: 'white', fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{username}</p>
+        <p style={{ color: '#9FE1CB', fontSize: 9 }}>@{username} · Member since {memberYear}</p>
       </div>
 
       {/* Stats card */}
@@ -69,19 +84,18 @@ export default function Profile() {
 
       {/* Menu */}
       <div className="flex-1 mt-3">
-        {menuItems.map(({ icon: Icon, label, danger }) => (
+        {menuItems.map(({ icon: Icon, label }) => (
           <div
             key={label}
             className="flex items-center gap-2.5 px-3.5 py-2.5 border-b"
             style={{ borderColor: 'rgba(0,0,0,0.06)' }}
           >
-            <Icon size={15} color={danger ? '#A32D2D' : '#888780'} />
-            <span style={{ fontSize: 10, flex: 1, color: danger ? '#A32D2D' : '#2C2C2A' }}>
-              {label}
-            </span>
-            {!danger && <IconChevronRight size={12} color="#D3D1C7" />}
+            <Icon size={15} color="#888780" />
+            <span style={{ fontSize: 10, flex: 1, color: '#2C2C2A' }}>{label}</span>
+            <IconChevronRight size={12} color="#D3D1C7" />
           </div>
         ))}
+        <SignOutButton />
       </div>
 
       <TabBar />

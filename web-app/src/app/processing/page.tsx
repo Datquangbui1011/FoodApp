@@ -97,8 +97,28 @@ export default function Processing() {
         }
         // Mark all steps done
         setSteps(prev => prev.map(s => ({ ...s, state: 'done' })));
-        // Store result and navigate
-        sessionStorage.setItem('foodmap_result', JSON.stringify(data));
+        // Persist result for result page
+        sessionStorage.setItem('foodmap_result', JSON.stringify({ ...data, videoUrl: url }));
+        // Save to recent searches (Supabase if logged in, else localStorage)
+        try {
+          const { createClient } = await import('@/lib/supabase/client');
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          const topPick = data.inference?.topPick;
+          const place = data.places?.[0];
+          const name: string | undefined = place?.name ?? topPick?.name;
+          const confidence: number | null = topPick ? Math.round(topPick.confidence * 100) : null;
+          if (name) {
+            if (user) {
+              await supabase.from('recent_searches').insert({ user_id: user.id, restaurant_name: name, confidence });
+            } else {
+              const COLORS = ['#C5E8D8', '#F5D9A0', '#D5D2F5', '#F5C4B3'];
+              const existing: any[] = JSON.parse(localStorage.getItem('foodmap_recents') || '[]');
+              const entry = { id: Date.now(), name, confidence, time: new Date().toISOString(), color: COLORS[existing.length % COLORS.length] };
+              localStorage.setItem('foodmap_recents', JSON.stringify([entry, ...existing].slice(0, 10)));
+            }
+          }
+        } catch {}
         setTimeout(() => router.push('/result'), 600);
       })
       .catch(() => setError('Processing server unreachable'));

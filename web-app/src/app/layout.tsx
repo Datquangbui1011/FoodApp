@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
+import Providers from "./components/Providers";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -21,9 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${dmSans.variable} h-full`}>
       <body className="min-h-full flex flex-col items-center justify-start bg-[#F0EDE6]">
-        <div className="w-full max-w-sm min-h-screen bg-white flex flex-col shadow-xl relative overflow-hidden">
-          {children}
-        </div>
+        <Providers>
+          <div className="w-full max-w-sm min-h-screen bg-white flex flex-col shadow-xl relative overflow-hidden">
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   );

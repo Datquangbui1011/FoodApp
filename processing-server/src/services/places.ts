@@ -35,6 +35,7 @@ export async function lookupPlace(name: string, city: string): Promise<PlaceResu
           'User-Agent': 'FoodMapAI/1.0 (food-video-processor)',
           'Accept': 'application/json',
         },
+        timeout: 8000,
       }
     );
 
@@ -77,6 +78,7 @@ async function cityFallback(name: string, city: string): Promise<PlaceResult[]> 
           'User-Agent': 'FoodMapAI/1.0 (food-video-processor)',
           'Accept': 'application/json',
         },
+        timeout: 8000,
       }
     );
 
