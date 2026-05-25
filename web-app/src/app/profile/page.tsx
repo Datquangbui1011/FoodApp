@@ -8,6 +8,7 @@ import {
 } from '@tabler/icons-react';
 import TabBar from '../components/TabBar';
 import SignOutButton from '../components/SignOutButton';
+import StatusBar from '../components/StatusBar';
 import { createClient } from '@/lib/supabase/server';
 
 const menuItems = [
@@ -40,25 +41,20 @@ export default async function Profile() {
 
   return (
     <div className="flex flex-col flex-1">
-      {/* Status bar */}
-      <div
-        className="flex justify-between items-center px-4 pt-3 pb-1.5"
-        style={{ background: '#0F6E56' }}
-      >
-        <span style={{ color: '#9FE1CB', fontSize: 10, fontWeight: 500 }}>9:41</span>
-        <span style={{ color: '#9FE1CB', fontSize: 10, fontWeight: 500 }}>▲▲▲ ▲</span>
-      </div>
 
-      {/* Profile header */}
-      <div className="px-3.5 pt-3.5 pb-6 text-center" style={{ background: '#0F6E56' }}>
-        <div
-          className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"
-          style={{ background: '#1D9E75', border: '2.5px solid #9FE1CB', fontSize: 16, fontWeight: 600, color: 'white' }}
-        >
-          {initials}
+      {/* Header */}
+      <div style={{ background: '#0F6E56' }}>
+        <StatusBar dark />
+        <div className="px-3.5 pt-1 pb-6 text-center">
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"
+            style={{ background: '#1D9E75', border: '2.5px solid #9FE1CB', fontSize: 16, fontWeight: 600, color: 'white' }}
+          >
+            {initials}
+          </div>
+          <p style={{ color: 'white', fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{username}</p>
+          <p style={{ color: '#9FE1CB', fontSize: 9 }}>@{username} · Member since {memberYear}</p>
         </div>
-        <p style={{ color: 'white', fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{username}</p>
-        <p style={{ color: '#9FE1CB', fontSize: 9 }}>@{username} · Member since {memberYear}</p>
       </div>
 
       {/* Stats card */}
@@ -72,12 +68,8 @@ export default async function Profile() {
             className="flex-1 py-2.5 text-center"
             style={{ borderLeft: i > 0 ? '1px solid rgba(0,0,0,0.06)' : 'none' }}
           >
-            <span style={{ display: 'block', fontSize: 16, fontWeight: 600, color: '#2C2C2A' }}>
-              {num}
-            </span>
-            <span style={{ fontSize: 7, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              {label}
-            </span>
+            <span style={{ display: 'block', fontSize: 16, fontWeight: 600, color: '#2C2C2A' }}>{num}</span>
+            <span style={{ fontSize: 7, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
           </div>
         ))}
       </div>

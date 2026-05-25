@@ -16,6 +16,7 @@ import {
   IconDownload,
   IconAlertCircle,
 } from '@tabler/icons-react';
+import StatusBar from '../components/StatusBar';
 
 type StepState = 'done' | 'active' | 'pending' | 'error';
 
@@ -50,6 +51,22 @@ function shortUrl(url: string) {
   }
 }
 
+function errorTitle(error: string, url: string) {
+  if (error === 'private_video') return 'This video is private';
+  if (error === 'unsupported_url') return 'URL not supported';
+  if (error === "Restaurant couldn't be identified") return "Couldn't identify a restaurant";
+  if (error === 'download_failed' && url.includes('tiktok')) return 'TikTok download blocked';
+  return 'Processing failed';
+}
+
+function errorBody(error: string, url: string) {
+  if (error === 'private_video') return 'Try a public video instead.';
+  if (error === 'unsupported_url') return 'Paste a TikTok, Instagram, Facebook or YouTube link.';
+  if (error === 'download_failed' && url.includes('tiktok'))
+    return 'TikTok blocks automated downloads. Try the same restaurant on YouTube or Instagram instead.';
+  return 'Try a different video with a clearly visible restaurant name or sign.';
+}
+
 const STEP_ICONS = [IconDownload, IconEye, IconLink, IconEye, IconMapPin];
 
 export default function Processing() {
@@ -61,7 +78,6 @@ export default function Processing() {
   const [error, setError] = useState<string | null>(null);
   const called = useRef(false);
 
-  // Simulate step progression while API runs
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     timers.push(setTimeout(() => advanceStep(1), 3000));
@@ -91,15 +107,9 @@ export default function Processing() {
     })
       .then(async (res) => {
         const data = await res.json();
-        if (!res.ok) {
-          setError(data.error || 'Something went wrong');
-          return;
-        }
-        // Mark all steps done
+        if (!res.ok) { setError(data.error || 'Something went wrong'); return; }
         setSteps(prev => prev.map(s => ({ ...s, state: 'done' })));
-        // Persist result for result page
         sessionStorage.setItem('foodmap_result', JSON.stringify({ ...data, videoUrl: url }));
-        // Save to recent searches (Supabase if logged in, else localStorage)
         try {
           const { createClient } = await import('@/lib/supabase/client');
           const supabase = createClient();
@@ -113,27 +123,28 @@ export default function Processing() {
               await supabase.from('recent_searches').insert({ user_id: user.id, restaurant_name: name, confidence });
             } else {
               const COLORS = ['#C5E8D8', '#F5D9A0', '#D5D2F5', '#F5C4B3'];
-              const existing: any[] = JSON.parse(localStorage.getItem('foodmap_recents') || '[]');
+              const existing: { id: number; name: string; confidence: number | null; time: string; color: string }[] =
+                JSON.parse(localStorage.getItem('foodmap_recents') || '[]');
               const entry = { id: Date.now(), name, confidence, time: new Date().toISOString(), color: COLORS[existing.length % COLORS.length] };
               localStorage.setItem('foodmap_recents', JSON.stringify([entry, ...existing].slice(0, 10)));
             }
           }
-        } catch {}
-        setTimeout(() => router.push('/result'), 600);
+        } catch { /* ignore */ }
+        setTimeout(() => router.push('/'), 600);
       })
       .catch(() => setError('Processing server unreachable'));
   }, [url, router]);
 
   return (
     <div className="flex flex-col flex-1">
-      {/* Status bar */}
-      <div className="flex justify-between items-center px-4 pt-3 pb-1.5" style={{ background: '#0F6E56' }}>
-        <span style={{ color: '#9FE1CB', fontSize: 10, fontWeight: 500 }}>9:41</span>
-        <span style={{ color: '#9FE1CB', fontSize: 10, fontWeight: 500 }}>▲▲▲ ▲</span>
-      </div>
-      <div className="flex items-center gap-2 px-3.5 pb-3 pt-2" style={{ background: '#0F6E56' }}>
-        <Link href="/"><IconArrowLeft size={16} color="#9FE1CB" /></Link>
-        <span style={{ color: 'white', fontSize: 13, fontWeight: 500, flex: 1 }}>Analyzing video</span>
+
+      {/* Header */}
+      <div style={{ background: '#0F6E56' }}>
+        <StatusBar dark />
+        <div className="flex items-center gap-2 px-3.5 pb-3">
+          <Link href="/"><IconArrowLeft size={16} color="#9FE1CB" /></Link>
+          <span style={{ color: 'white', fontSize: 13, fontWeight: 500, flex: 1 }}>Analyzing video</span>
+        </div>
       </div>
 
       <div className="flex-1 px-3.5 py-3.5">
@@ -148,16 +159,24 @@ export default function Processing() {
           <div className="flex flex-col items-center gap-3 mt-8">
             <IconAlertCircle size={32} color="#E24B4A" />
             <p style={{ fontSize: 12, fontWeight: 600, color: '#2C2C2A', textAlign: 'center' }}>
-              {error === 'private_video' ? 'This video is private' :
-               error === 'unsupported_url' ? 'URL not supported' :
-               error === "Restaurant couldn't be identified" ? "Couldn't identify a restaurant" :
-               'Processing failed'}
+              {errorTitle(error, url)}
             </p>
-            <p style={{ fontSize: 9, color: '#888780', textAlign: 'center' }}>
-              {error === 'private_video' ? 'Try a public video instead.' :
-               error === 'unsupported_url' ? 'Paste a TikTok, Instagram, Facebook or YouTube link.' :
-               'Try a different video with a clearly visible restaurant.'}
+            <p style={{ fontSize: 9, color: '#888780', textAlign: 'center', maxWidth: 220, lineHeight: 1.6 }}>
+              {errorBody(error, url)}
             </p>
+            {error === 'download_failed' && url.includes('tiktok') && (
+              <div className="flex gap-2 mt-1">
+                <span style={{ fontSize: 8, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
+                  YouTube ✓
+                </span>
+                <span style={{ fontSize: 8, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
+                  Instagram ✓
+                </span>
+                <span style={{ fontSize: 8, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
+                  Facebook ✓
+                </span>
+              </div>
+            )}
             <Link href="/" className="px-4 py-2 rounded-lg mt-2"
               style={{ background: '#0F6E56', color: 'white', fontSize: 10, fontWeight: 500 }}>
               Try again

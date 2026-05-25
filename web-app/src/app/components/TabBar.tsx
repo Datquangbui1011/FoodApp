@@ -4,14 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   IconHome,
-  IconCompass,
   IconHeart,
   IconUser,
 } from '@tabler/icons-react';
 
 const tabs = [
   { label: 'Home', href: '/', icon: IconHome },
-  { label: 'Explore', href: '/explore', icon: IconCompass },
   { label: 'Saved', href: '/saved', icon: IconHeart },
   { label: 'Profile', href: '/profile', icon: IconUser },
 ];

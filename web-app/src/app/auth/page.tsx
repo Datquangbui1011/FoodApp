@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IconMail, IconLock, IconAlertCircle } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
+import StatusBar from '../components/StatusBar';
 
 type Mode = 'signin' | 'signup';
 
@@ -47,16 +48,12 @@ export default function AuthPage() {
 
   return (
     <div className="flex flex-col flex-1">
-      {/* Status bar */}
-      <div className="flex justify-between items-center px-4 pt-3 pb-1.5" style={{ background: '#0F6E56' }}>
-        <span style={{ color: '#9FE1CB', fontSize: 10, fontWeight: 500 }}>9:41</span>
-        <span style={{ color: '#9FE1CB', fontSize: 10, fontWeight: 500 }}>▲▲▲ ▲</span>
-      </div>
-
-      {/* Header */}
-      <div className="px-3.5 pt-4 pb-6 text-center" style={{ background: '#0F6E56' }}>
-        <h1 style={{ color: 'white', fontSize: 18, fontWeight: 700, marginBottom: 4 }}>FoodMap</h1>
-        <p style={{ color: '#9FE1CB', fontSize: 9 }}>Find any restaurant from a video</p>
+      <div style={{ background: '#0F6E56' }}>
+        <StatusBar dark />
+        <div className="px-3.5 pt-1 pb-6 text-center">
+          <h1 style={{ color: 'white', fontSize: 18, fontWeight: 700, marginBottom: 4 }}>FoodMap</h1>
+          <p style={{ color: '#9FE1CB', fontSize: 9 }}>Find any restaurant from a video</p>
+        </div>
       </div>
 
       {/* Card */}

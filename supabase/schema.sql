@@ -73,7 +73,7 @@ create policy "Users own their saved restaurants"
   on public.saved_restaurants for all
   using (auth.uid() = user_id);
 
--- Migration: run this if the table already exists
--- alter table public.saved_restaurants
---   add column if not exists video_url text,
---   add column if not exists rating double precision;
+-- Migration: adds video_url and rating columns (run in Supabase SQL Editor if table already exists)
+alter table public.saved_restaurants
+  add column if not exists video_url text,
+  add column if not exists rating double precision;
