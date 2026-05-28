@@ -8,6 +8,7 @@ export interface TikTokVideo {
   thumbnail: string | null;
   title: string;
   author: string;
+  platform: 'tiktok' | 'instagram' | 'facebook' | 'youtube';
 }
 
 export interface PlaceDetails {
@@ -25,8 +26,8 @@ export interface PlaceDetails {
   phone: string | null;
   website: string | null;
   summary: string | null;          // editorial_summary or top review snippet
-  topReviews: string[];            // up to 3 short review snippets
-  tiktoks: TikTokVideo[];          // up to 4 videos
+  topReviews: { text: string; rating: number; author: string }[];  // balanced good + bad
+  tiktoks: TikTokVideo[];          // up to 3 videos
 }
 
 export async function GET(req: NextRequest): Promise<NextResponse<PlaceDetails>> {
@@ -69,9 +70,10 @@ export async function GET(req: NextRequest): Promise<NextResponse<PlaceDetails>>
   const dayIndex = (new Date().getDay() + 6) % 7;
   const hoursToday = details.weekdayText?.[dayIndex]?.replace(/^[^:]+:\s*/, '') ?? null;
 
-  // Summary: editorial first, then top review snippet
+  // Summary: editorial first, then top positive review snippet
+  const firstReview = details.topReviews.find(r => r.rating >= 4)?.text ?? details.topReviews[0]?.text;
   const summary = details.summary
-    ?? (details.topReviews[0] ? details.topReviews[0].slice(0, 120) + (details.topReviews[0].length > 120 ? '…' : '') : null);
+    ?? (firstReview ? firstReview.slice(0, 120) + (firstReview.length > 120 ? '…' : '') : null);
 
   return NextResponse.json({
     photoUrls,
@@ -133,6 +135,8 @@ async function textSearch(name: string, lat: string, lng: string): Promise<TextR
 }
 
 // ── Google Place Details ──────────────────────────────────────────────────────
+type Review = { text: string; rating: number; author: string };
+
 interface DetailsResult {
   photoRefs: string[];
   weekdayText: string[] | null;
@@ -142,7 +146,20 @@ interface DetailsResult {
   phone: string | null;
   website: string | null;
   summary: string | null;
-  topReviews: string[];
+  topReviews: Review[];
+}
+
+function fairReviews(raw: { text?: string; rating?: number; author_name?: string }[]): Review[] {
+  const valid = raw.filter(r => r.text && r.text.length > 20 && r.rating != null) as
+    { text: string; rating: number; author_name?: string }[];
+  const positive = valid.filter(r => r.rating >= 4);
+  const negative = valid.filter(r => r.rating <= 3);
+  // Take up to 2 positive + 2 negative for a balanced view
+  const mixed = [
+    ...positive.slice(0, 2),
+    ...negative.slice(0, 2),
+  ].slice(0, 4);
+  return mixed.map(r => ({ text: r.text, rating: r.rating, author: r.author_name ?? 'Anonymous' }));
 }
 
 async function placeDetails(placeId: string): Promise<DetailsResult> {
@@ -161,14 +178,10 @@ async function placeDetails(placeId: string): Promise<DetailsResult> {
         formatted_phone_number?: string;
         website?: string;
         editorial_summary?: { overview?: string };
-        reviews?: { text?: string; rating?: number }[];
+        reviews?: { text?: string; rating?: number; author_name?: string }[];
       };
     };
     const r = data.result;
-    const topReviews = (r?.reviews ?? [])
-      .filter(rv => rv.text && rv.text.length > 20)
-      .slice(0, 3)
-      .map(rv => rv.text!);
     return {
       photoRefs:   (r?.photos ?? []).slice(0, 4).map(p => p.photo_reference),
       weekdayText: r?.opening_hours?.weekday_text ?? null,
@@ -178,7 +191,7 @@ async function placeDetails(placeId: string): Promise<DetailsResult> {
       phone:       r?.formatted_phone_number ?? null,
       website:     r?.website ?? null,
       summary:     r?.editorial_summary?.overview ?? null,
-      topReviews,
+      topReviews:  fairReviews(r?.reviews ?? []),
     };
   } catch {
     return { photoRefs: [], weekdayText: null, openNow: null, address: null, priceLevel: null, phone: null, website: null, summary: null, topReviews: [] };
@@ -206,45 +219,48 @@ async function getDistance(
   } catch { return { distance: null, duration: null }; }
 }
 
-// ── TikTok: find up to 4 videos via CSE + oEmbed ─────────────────────────────
-async function getTikToks(name: string, knownUrl: string): Promise<TikTokVideo[]> {
-  const results: TikTokVideo[] = [];
+// ── Video reviews (TikTok · Instagram · Facebook) ────────────────────────────
 
-  // If caller already knows a TikTok URL, resolve it first
-  if (knownUrl.includes('tiktok.com')) {
-    const v = await resolveOEmbed(knownUrl);
-    if (v) results.push(v);
-  }
+type Platform = 'tiktok' | 'instagram' | 'facebook' | 'youtube';
 
-  // Search for more via CSE (up to 4 total)
-  if (KEY && CSE_ID && results.length < 4) {
-    try {
-      const num = 4 - results.length;
-      const res = await fetch(
-        `https://www.googleapis.com/customsearch/v1?key=${KEY}&cx=${CSE_ID}` +
-        `&q=${encodeURIComponent(name + ' restaurant food')}&siteSearch=tiktok.com&num=${num}`,
-        { next: { revalidate: 3600 } },
-      );
-      const data = await res.json() as { items?: { link: string }[] };
-      const links = (data.items ?? []).map(i => i.link).filter(l => l.includes('tiktok.com'));
-      for (const link of links) {
-        if (results.some(r => r.videoUrl === link)) continue;
-        const v = await resolveOEmbed(link);
-        if (v) results.push(v);
-        if (results.length >= 4) break;
-      }
-    } catch { /* skip */ }
-  }
-
-  return results;
+function urlPlatform(url: string): Platform | null {
+  if (url.includes('tiktok.com'))  return 'tiktok';
+  if (url.includes('instagram.com')) return 'instagram';
+  if (url.includes('facebook.com') || url.includes('fb.watch')) return 'facebook';
+  if (url.includes('youtube.com')  || url.includes('youtu.be')) return 'youtube';
+  return null;
 }
 
-async function resolveOEmbed(url: string): Promise<TikTokVideo | null> {
+// Fetch up to `num` videos for a restaurant from one social platform via CSE
+async function cseVideos(name: string, site: string, num: number): Promise<TikTokVideo[]> {
+  if (!KEY || !CSE_ID) return [];
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/customsearch/v1?key=${KEY}&cx=${CSE_ID}` +
+      `&q=${encodeURIComponent(name + ' food')}&siteSearch=${site}&num=${num}`,
+      { next: { revalidate: 3600 } },
+    );
+    const data = await res.json() as {
+      items?: { link: string; title?: string; pagemap?: { cse_thumbnail?: { src: string }[] } }[];
+    };
+    return (data.items ?? [])
+      .filter(i => i.link.includes(site))
+      .map(i => ({
+        videoUrl:  i.link,
+        thumbnail: i.pagemap?.cse_thumbnail?.[0]?.src ?? null,
+        title:     i.title ?? '',
+        author:    '',
+        platform:  urlPlatform(i.link) ?? 'tiktok',
+      }));
+  } catch { return []; }
+}
+
+// Enrich a TikTok URL with real thumbnail + author via oEmbed
+async function tiktokOEmbed(url: string): Promise<TikTokVideo | null> {
   let resolved = url;
   if (!url.includes('/video/')) {
-    try {
-      resolved = (await fetch(url, { method: 'HEAD', redirect: 'follow' })).url;
-    } catch { /* keep original */ }
+    try { resolved = (await fetch(url, { method: 'HEAD', redirect: 'follow' })).url; }
+    catch { /* keep original */ }
   }
   try {
     const res = await fetch(
@@ -253,6 +269,57 @@ async function resolveOEmbed(url: string): Promise<TikTokVideo | null> {
     );
     if (!res.ok) return null;
     const o = await res.json() as { thumbnail_url?: string; title?: string; author_name?: string };
-    return { videoUrl: resolved, thumbnail: o.thumbnail_url ?? null, title: o.title ?? '', author: o.author_name ?? '' };
+    return { videoUrl: resolved, thumbnail: o.thumbnail_url ?? null, title: o.title ?? '', author: o.author_name ?? '', platform: 'tiktok' };
   } catch { return null; }
+}
+
+async function getTikToks(name: string, knownUrl: string): Promise<TikTokVideo[]> {
+  const seen  = new Set<string>();
+  const out: TikTokVideo[] = [];
+
+  function add(v: TikTokVideo) {
+    if (out.length < 3 && !seen.has(v.videoUrl)) { seen.add(v.videoUrl); out.push(v); }
+  }
+
+  // 1. Known URL from the processed video — put it first
+  if (knownUrl) {
+    const p = urlPlatform(knownUrl);
+    if (p === 'tiktok') {
+      const v = await tiktokOEmbed(knownUrl);
+      if (v) add(v);
+    } else if (p) {
+      add({ videoUrl: knownUrl, thumbnail: null, title: '', author: '', platform: p });
+    }
+  }
+
+  if (out.length >= 3) return out;
+
+  // 2. Search TikTok, Instagram, Facebook in parallel — take 1 from each for variety
+  const [tt, ig, fb] = await Promise.all([
+    cseVideos(name, 'tiktok.com',   3),
+    cseVideos(name, 'instagram.com', 3),
+    cseVideos(name, 'facebook.com',  3),
+  ]);
+
+  // Round-robin: TikTok → Instagram → Facebook → TikTok …
+  const pool = [tt, ig, fb];
+  let i = 0;
+  while (out.length < 3) {
+    let added = false;
+    for (const bucket of pool) {
+      if (out.length >= 3) break;
+      const v = bucket[i];
+      if (!v) continue;
+      if (v.platform === 'tiktok' && !v.thumbnail) {
+        const enriched = await tiktokOEmbed(v.videoUrl);
+        if (enriched) { add(enriched); added = true; }
+      } else {
+        add(v); added = true;
+      }
+    }
+    i++;
+    if (!added) break;
+  }
+
+  return out;
 }

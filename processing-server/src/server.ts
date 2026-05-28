@@ -6,6 +6,7 @@ import { downloadVideo } from './services/downloader';
 import { extractAudio, extractFrames } from './services/extractor';
 import { transcribeAudio, analyzeFrames, inferRestaurant } from './services/ai';
 import { lookupPlace } from './services/places';
+import { fetchVideoMetadata } from './services/metadata';
 
 dotenv.config();
 
@@ -42,6 +43,12 @@ app.post('/process', requireApiKey, async (req: Request, res: Response) => {
   let audioPath = '';
   try {
     const tempDir = path.join(__dirname, '..', 'temp');
+
+    // Fetch caption first — free, fast, most accurate signal
+    const metadata = await fetchVideoMetadata(url);
+    const caption = [metadata.title, metadata.description].filter(Boolean).join('\n\n');
+    console.log('Caption extracted:', caption.slice(0, 120));
+
     videoPath = await downloadVideo(url, tempDir);
 
     const [extractedAudioPath, frames] = await Promise.all([
@@ -52,21 +59,27 @@ app.post('/process', requireApiKey, async (req: Request, res: Response) => {
 
     const transcript = await transcribeAudio(audioPath);
     const visionResult = await analyzeFrames(frames);
-    const inference = await inferRestaurant(transcript, visionResult);
+    const inference = await inferRestaurant(transcript, visionResult, caption);
 
-    if (!inference.topPick && inference.candidates.length === 0) {
+    if (inference.restaurants.length === 0) {
       throw new Error("Restaurant couldn't be identified");
     }
 
-    let places: any[] = [];
-    if (inference.topPick) {
-      places = await lookupPlace(inference.topPick.name, inference.topPick.city);
-    } else {
-      const first = inference.candidates[0];
-      if (first) places = await lookupPlace(first.name, first.city);
-    }
+    // Look up all restaurants in parallel (up to 5)
+    const allPlaces = await Promise.all(
+      inference.restaurants.slice(0, 5).map(async r => ({
+        name: r.name,
+        confidence: r.confidence,
+        menuItems: r.menuItems,
+        cuisineType: r.cuisineType,
+        places: await lookupPlace(r.name, r.city),
+      }))
+    );
 
-    res.json({ status: 'success', url, inference, places });
+    // Legacy: top result's places array for any old clients
+    const places = allPlaces[0]?.places ?? [];
+
+    res.json({ status: 'success', url, inference, places, allPlaces, _debug: { caption, transcript, visionResult } });
   } catch (error: any) {
     console.error('Error processing video:', error);
     const msg: string = error.message || 'Internal server error';

@@ -1,8 +1,5 @@
 import Groq from 'groq-sdk';
-import { exec } from 'child_process';
-import util from 'util';
-
-const execPromise = util.promisify(exec);
+import fs from 'fs';
 
 const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 const TEXT_MODEL = 'llama-3.3-70b-versatile';
@@ -54,20 +51,16 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
 }
 
 export async function transcribeAudio(audioPath: string): Promise<string> {
-  const modelPath = process.env.WHISPER_MODEL_PATH;
-  const cliPath = process.env.WHISPER_CLI_PATH || 'whisper-cli';
-
-  if (!modelPath) throw new Error('WHISPER_MODEL_PATH is not set in environment');
-
-  const command = `"${cliPath}" -m "${modelPath}" -f "${audioPath}" -nt`;
-  console.log(`Running whisper: ${command}`);
-
-  try {
-    const { stdout } = await execPromise(command);
-    return stdout.trim();
-  } catch (error: any) {
-    throw new Error(`Whisper execution failed: ${error.message}`);
-  }
+  const client = getClient();
+  console.log('Transcribing with Groq Whisper:', audioPath);
+  return withRetry(async () => {
+    const transcription = await client.audio.transcriptions.create({
+      file: fs.createReadStream(audioPath),
+      model: 'whisper-large-v3-turbo',
+      response_format: 'text',
+    });
+    return (transcription as unknown as string).trim();
+  });
 }
 
 export interface VisionResult {
@@ -76,80 +69,148 @@ export interface VisionResult {
   menuItems: string[];
   cuisineType: string;
   confidence: number;
+  _allFound?: { name: string; city: string; menuItems: string[]; cuisineType: string }[];
+}
+
+const OCR_PROMPT = `These are frames from a food/restaurant video (TikTok, Instagram Reel, YouTube).
+
+Extract ALL restaurant or café names visible as text in these frames. Look for:
+- Text overlays, title cards, captions burned into the video
+- Storefront signs, logos, banners
+- Location tags, address text, any on-screen text naming a place
+
+List EVERY restaurant name you can read — there may be 1 or several across these frames.
+Also note the city/location if visible, any menu items, and cuisine type.
+
+Output strictly as JSON, no markdown:
+{"restaurants":[{"name":"...","city":"...","menuItems":[],"cuisineType":"..."}],"city":"..."}`;
+
+async function runOcrBatch(
+  client: Groq,
+  batch: { timestamp: number; base64: string }[],
+): Promise<{ name: string; city: string; menuItems: string[]; cuisineType: string }[]> {
+  const imageContent = batch.map(f => ({
+    type: 'image_url' as const,
+    image_url: { url: f.base64.startsWith('data:') ? f.base64 : `data:image/jpeg;base64,${f.base64}` },
+  }));
+
+  return withRetry(async () => {
+    const response = await client.chat.completions.create({
+      model: VISION_MODEL,
+      messages: [{ role: 'user', content: [{ type: 'text', text: OCR_PROMPT }, ...imageContent] }],
+      temperature: 0.1,
+      max_tokens: 600,
+    });
+    const raw = response.choices[0]?.message?.content ?? '';
+    try {
+      const parsed = JSON.parse(extractFirstJSON(raw)) as {
+        restaurants?: { name: string; city: string; menuItems?: string[]; cuisineType?: string }[];
+      };
+      return (parsed.restaurants ?? []).map(r => ({
+        name: r.name,
+        city: r.city,
+        menuItems: r.menuItems ?? [],
+        cuisineType: r.cuisineType ?? '',
+      }));
+    } catch { return []; }
+  });
 }
 
 export async function analyzeFrames(frames: { timestamp: number, base64: string }[]): Promise<VisionResult> {
   const client = getClient();
 
-  // Sample up to 4 frames
-  const step = Math.ceil(frames.length / 4);
-  const sampled = frames.filter((_, i) => i % step === 0).slice(0, 4);
+  // Split all frames into batches of 5, run all batches in parallel
+  const batches: typeof frames[] = [];
+  for (let i = 0; i < frames.length; i += 5) batches.push(frames.slice(i, i + 5));
 
-  const imageContent = sampled.map(frame => ({
-    type: 'image_url' as const,
-    image_url: {
-      url: frame.base64.startsWith('data:') ? frame.base64 : `data:image/jpeg;base64,${frame.base64}`,
-    },
-  }));
+  console.log(`Running ${batches.length} parallel vision batch(es) over ${frames.length} frames`);
+  const batchResults = await Promise.all(batches.map(b => runOcrBatch(client, b)));
 
-  const prompt = `Analyze these frames from a food video. Extract the restaurant name, city/location, menu items shown or mentioned, and the cuisine type. Output strictly as JSON with no markdown. Confidence is 0.0–1.0 based on how clearly the restaurant name and city are visible.
-Format: {"name":"...","city":"...","menuItems":[],"cuisineType":"...","confidence":0.9}`;
+  // Deduplicate by name (case-insensitive)
+  const seen = new Set<string>();
+  const all: { name: string; city: string; menuItems: string[]; cuisineType: string }[] = [];
+  for (const results of batchResults) {
+    for (const r of results) {
+      const key = r.name.toLowerCase().trim();
+      if (key && !seen.has(key)) { seen.add(key); all.push(r); }
+    }
+  }
 
-  return withRetry(async () => {
-    const response = await client.chat.completions.create({
-      model: VISION_MODEL,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            ...imageContent,
-          ],
-        },
-      ],
-      temperature: 0.1,
-      max_tokens: 512,
-    });
+  console.log(`Vision found ${all.length} unique place(s):`, all.map(r => r.name));
 
-    const raw = response.choices[0]?.message?.content ?? '';
-    return JSON.parse(extractFirstJSON(raw)) as VisionResult;
-  });
+  // Return as VisionResult — put the highest-confidence (first) as primary
+  const top = all[0];
+  return {
+    name: top?.name ?? '',
+    city: top?.city ?? '',
+    menuItems: top?.menuItems ?? [],
+    cuisineType: top?.cuisineType ?? '',
+    confidence: top ? 0.9 : 0,
+    _allFound: all,
+  };
 }
 
-export interface InferenceCandidate {
+export interface InferenceRestaurant {
   name: string;
   city: string;
   confidence: number;
-}
-
-export interface InferenceResult {
-  candidates: InferenceCandidate[];
-  topPick: InferenceCandidate | null;
   menuItems: string[];
   cuisineType: string;
 }
 
-export async function inferRestaurant(transcript: string, vision: VisionResult): Promise<InferenceResult> {
+export interface InferenceResult {
+  restaurants: InferenceRestaurant[];
+  // legacy fields derived from restaurants[0] — kept for backwards compat
+  topPick: { name: string; city: string; confidence: number } | null;
+  candidates: { name: string; city: string; confidence: number }[];
+  menuItems: string[];
+  cuisineType: string;
+}
+
+export async function inferRestaurant(
+  transcript: string,
+  vision: VisionResult,
+  caption: string = '',
+): Promise<InferenceResult> {
   const client = getClient();
 
-  const prompt = `Transcript: ${transcript}
+  const allFound = vision._allFound ?? [];
+  const captionSection = caption
+    ? `Video caption (written by the creator — HIGHEST PRIORITY source):\n${caption.slice(0, 1500)}\n\n`
+    : '';
+  const visionSection = allFound.length > 0
+    ? `Text read from video frames (OCR across all frames — HIGH PRIORITY):\n${JSON.stringify(allFound)}\n\n`
+    : `Vision analysis (single pass):\n${JSON.stringify(vision)}\n\n`;
 
-Vision output: ${JSON.stringify(vision)}
+  const prompt = `${captionSection}${visionSection}Audio transcript: ${transcript || '(none)'}
 
-Combine these sources to determine the most likely restaurant being featured.
+This video may feature ONE restaurant or a LIST of multiple restaurants (e.g. "Top 5 date night spots").
+Use ALL sources above. OCR text from frames is very reliable — if a name was read from the screen, include it.
+If the caption or OCR shows multiple restaurants, list ALL of them.
+
 Output strictly as JSON with no markdown:
-{"candidates":[{"name":"Restaurant Name","city":"City Name","confidence":0.9}],"topPick":{"name":"Restaurant Name","city":"City Name","confidence":0.9},"menuItems":["Item 1"],"cuisineType":"Cuisine"}
-Up to 3 candidates if ambiguous. Confidence from 0.0 to 1.0.`;
+{"restaurants":[{"name":"Restaurant Name","city":"City, State","confidence":0.9,"menuItems":["pasta"],"cuisineType":"Italian"}]}
+Up to 5 restaurants. Sort by confidence descending. Confidence 0.0–1.0.`;
 
   return withRetry(async () => {
     const response = await client.chat.completions.create({
       model: TEXT_MODEL,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.1,
-      max_tokens: 512,
+      max_tokens: 800,
     });
 
     const raw = response.choices[0]?.message?.content ?? '';
-    return JSON.parse(extractFirstJSON(raw)) as InferenceResult;
+    const parsed = JSON.parse(extractFirstJSON(raw)) as { restaurants?: InferenceRestaurant[] };
+    const restaurants: InferenceRestaurant[] = parsed.restaurants ?? [];
+    const top = restaurants[0] ?? null;
+
+    return {
+      restaurants,
+      topPick: top ? { name: top.name, city: top.city, confidence: top.confidence } : null,
+      candidates: restaurants.map(r => ({ name: r.name, city: r.city, confidence: r.confidence })),
+      menuItems: top?.menuItems ?? [],
+      cuisineType: top?.cuisineType ?? '',
+    };
   });
 }
