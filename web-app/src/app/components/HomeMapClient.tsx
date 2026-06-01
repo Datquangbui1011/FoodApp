@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, useSpring } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import {
@@ -115,6 +116,7 @@ export default function HomeMapClient() {
   const dragging       = useRef(false);
   const startClientY   = useRef(0);
   const startTranslateY = useRef(0);
+  const sheetY         = useSpring(SHEET_HEIGHT, { stiffness: 400, damping: 40, mass: 0.8 });
 
 
   // Discover pins — numbered, shown on map when no result pins
@@ -196,13 +198,8 @@ export default function HomeMapClient() {
     init();
   }, []);
 
-  // Animate sheet
-  useEffect(() => {
-    const el = sheetRef.current;
-    if (!el) return;
-    el.style.transition = 'transform 0.32s cubic-bezier(0.32,0.72,0,1)';
-    el.style.transform  = `translateY(${snapToY(snap)}px)`;
-  }, [snap]);
+  // Animate sheet with spring
+  useEffect(() => { sheetY.set(snapToY(snap)); }, [snap, sheetY]);
 
   // Fetch place details when pin selected
   useEffect(() => {
@@ -313,14 +310,12 @@ export default function HomeMapClient() {
     startClientY.current  = e.clientY;
     startTranslateY.current = snapToY(snap);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    const el = sheetRef.current;
-    if (el) el.style.transition = 'none';
+    sheetY.jump(snapToY(snap));
   }
   function onHandlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!dragging.current) return;
     const newY = Math.max(0, startTranslateY.current + (e.clientY - startClientY.current));
-    const el = sheetRef.current;
-    if (el) el.style.transform = `translateY(${newY}px)`;
+    sheetY.jump(newY);
   }
   function onHandlePointerUp(e: React.PointerEvent<HTMLDivElement>) {
     if (!dragging.current) return;
@@ -675,8 +670,8 @@ export default function HomeMapClient() {
       )}
 
       {/* ── Bottom sheet ─────────────────────────────────────────────────── */}
-      <div ref={sheetRef} className="absolute bottom-0 left-0 right-0 z-20"
-        style={{ height: SHEET_HEIGHT, transform: `translateY(${SHEET_HEIGHT}px)`, background: 'white', borderRadius: '18px 18px 0 0', boxShadow: '0 -6px 28px rgba(0,0,0,0.14)', display: 'flex', flexDirection: 'column' }}>
+      <motion.div ref={sheetRef} className="absolute bottom-0 left-0 right-0 z-20"
+        style={{ height: SHEET_HEIGHT, y: sheetY, background: 'white', borderRadius: '18px 18px 0 0', boxShadow: '0 -6px 28px rgba(0,0,0,0.14)', display: 'flex', flexDirection: 'column' }}>
 
         {/* Drag handle + peek header */}
         <div style={{ touchAction: 'none', cursor: 'grab', flexShrink: 0 }}
@@ -1136,7 +1131,7 @@ export default function HomeMapClient() {
             </div>
           </div>
         )}
-      </div>
+      </motion.div>
 
       <style>{`
         @keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
