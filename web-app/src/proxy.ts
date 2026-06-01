@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
+const PUBLIC_PATHS = ['/landing', '/auth'];
+
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -23,12 +25,21 @@ export async function proxy(request: NextRequest) {
     }
   );
 
-  // Refresh session so it doesn't expire mid-use
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { pathname } = request.nextUrl;
+  const isPublic = PUBLIC_PATHS.some(p => pathname.startsWith(p));
+
+  if (!user && !isPublic) {
+    return NextResponse.redirect(new URL('/landing', request.url));
+  }
+
+  if (user && isPublic) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
 
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|logo.png|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|logo.png|.*\\.png$|.*\\.jpg$|.*\\.svg$|.*\\.ico$|api/).*)'],
 };
