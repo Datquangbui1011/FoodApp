@@ -64,7 +64,7 @@ export default function HomeMap({ savedPins, nearbyPins, resultPins, selectedId,
     >
       {savedPins.map(pin => (
         <AdvancedMarker key={pin.id} position={{ lat: pin.lat, lng: pin.lng }} onClick={() => onSelect(pin.id)}>
-          <PinDot color={selectedId === pin.id ? '#085041' : '#0F6E56'} active={selectedId === pin.id} />
+          <PinDot color={selectedId === pin.id ? '#B52020' : '#E03030'} active={selectedId === pin.id} />
         </AdvancedMarker>
       ))}
 

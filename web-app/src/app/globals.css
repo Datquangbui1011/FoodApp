@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --green-50: #E1F5EE;
-  --green-100: #9FE1CB;
+  --green-50: #FFF0F0;
+  --green-100: #FFB9B8;
   --green-200: #5DCAA5;
   --green-400: #1D9E75;
-  --green-600: #0F6E56;
-  --green-800: #085041;
+  --green-600: #E03030;
+  --green-800: #B52020;
   --green-900: #04342C;
   --amber-50: #FAEEDA;
   --amber-100: #FAC775;
@@ -40,6 +40,6 @@
 
 body {
   font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
-  background: #F0EDE6;
+  background: #F5EDED;
   color: var(--gray-800);
 }

@@ -29,7 +29,7 @@ export default function MapView({ lat, lng, name, address }: Props) {
         <div style={{
           width: 24,
           height: 24,
-          background: '#0F6E56',
+          background: '#E03030',
           borderRadius: '50% 50% 50% 0',
           transform: 'rotate(-45deg)',
           border: '2.5px solid white',

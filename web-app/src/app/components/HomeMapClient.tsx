@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import {
-  IconLink,
   IconBrandTiktok,
   IconBrandFacebook,
   IconBrandYoutube,
@@ -16,10 +15,16 @@ import {
   IconHeartFilled,
   IconLoader2,
   IconPlayerPlay,
+  IconPhone,
+  IconChevronUp,
+  IconChevronDown,
+  IconArrowLeft,
+  IconSearch,
 } from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import type { MapPin } from './HomeMap';
 import type { PlaceDetails } from '../api/place-details/route';
+import type { NearbyRestaurant } from '../api/nearby-restaurants/route';
 
 const HomeMap = dynamic(() => import('./HomeMap'), { ssr: false });
 
@@ -41,36 +46,6 @@ const CATEGORIES: Category[] = [
   { label: '🍔 Burger', cuisine: 'burger' },
 ];
 
-async function fetchNearby(lat: number, lng: number, cat: Category): Promise<MapPin[]> {
-  const radius = 3000;
-  const inner = cat.isAmenity
-    ? `node["amenity"="cafe"](around:${radius},${lat},${lng});
-       way["amenity"="cafe"](around:${radius},${lat},${lng});`
-    : `node["amenity"="restaurant"]["cuisine"~"${cat.cuisine}",i](around:${radius},${lat},${lng});
-       way["amenity"="restaurant"]["cuisine"~"${cat.cuisine}",i](around:${radius},${lat},${lng});`;
-
-  const query = `[out:json][timeout:15];\n(\n${inner}\n);\nout center 30;`;
-  const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
-  const data = await res.json();
-
-  return (data.elements as Record<string, unknown>[])
-    .map(el => {
-      const tags = (el.tags ?? {}) as Record<string, string>;
-      const isWay = el.type === 'way';
-      const center = (el.center ?? {}) as Record<string, number>;
-      return {
-        id: `osm-${el.id as string}`,
-        name: tags.name ?? '',
-        lat:  isWay ? center.lat  : el.lat as number,
-        lng:  isWay ? center.lon  : el.lon as number,
-        cuisineType: tags.cuisine ?? cat.label.replace(/^\S+\s/, ''),
-        address: [tags['addr:housenumber'], tags['addr:street'], tags['addr:city']].filter(Boolean).join(' '),
-        videoUrl: null,
-        rating: null,
-      };
-    })
-    .filter(p => p.name && p.lat && p.lng);
-}
 
 // ─── Sheet snap ───────────────────────────────────────────────────────────────
 const SHEET_HEIGHT   = 540;
@@ -94,14 +69,6 @@ function detectPlatform(url: string) {
   return null;
 }
 
-const PLATFORM_ICONS = {
-  tiktok: IconBrandTiktok,
-  instagram: IconBrandInstagram,
-  facebook: IconBrandFacebook,
-  youtube: IconBrandYoutube,
-};
-
-
 function StarRating({ rating, count }: { rating: number | null | undefined; count?: number | null }) {
   if (rating == null) return null;
   const full = Math.round(rating);
@@ -122,11 +89,10 @@ function StarRating({ rating, count }: { rating: number | null | undefined; coun
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function HomeMapClient() {
   const router = useRouter();
-  const [url, setUrl] = useState('');
+  const [searchQuery, setSearchQuery]     = useState('');
   const [savedPins, setSavedPins]         = useState<MapPin[]>([]);
   const [nearbyPins, setNearbyPins]       = useState<MapPin[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [loadingNearby, setLoadingNearby] = useState(false);
   const [userLocation, setUserLocation]   = useState<{ lat: number; lng: number } | null>(null);
   const [resultPins, setResultPins]       = useState<MapPin[]>([]);
   const [savedNames, setSavedNames]       = useState<Set<string>>(new Set());
@@ -140,6 +106,9 @@ export default function HomeMapClient() {
   const [suggestions, setSuggestions]     = useState<MapPin[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [discoverList, setDiscoverList]   = useState<NearbyRestaurant[]>([]);
+  const [discoverLoading, setDiscoverLoading] = useState(false);
+  const discoverAllRef = useRef<NearbyRestaurant[]>([]);
 
   const sheetRef       = useRef<HTMLDivElement>(null);
   const toastTimer     = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -147,13 +116,20 @@ export default function HomeMapClient() {
   const startClientY   = useRef(0);
   const startTranslateY = useRef(0);
 
-  const platform     = detectPlatform(url);
-  const isValid      = url.trim().length > 0 && platform !== null;
-  const PlatformIcon = platform ? PLATFORM_ICONS[platform] : null;
-  const allPins      = [...savedPins, ...nearbyPins, ...resultPins];
+
+  // Discover pins — numbered, shown on map when no result pins
+  const discoverPins: MapPin[] = discoverList.map(r => ({
+    id: `disc-${r.placeId}`, name: r.name, lat: r.lat, lng: r.lng,
+    cuisineType: r.cuisineHint, address: r.address, rating: r.rating, videoUrl: null,
+  }));
+  const showDiscover = resultPins.length === 0;
+  const mapResultPins = showDiscover ? discoverPins : resultPins;
+
+  const allPins      = [...savedPins, ...nearbyPins, ...resultPins, ...discoverPins];
   const selectedPin  = allPins.find(p => p.id === selectedId) ?? null;
   const isResult     = resultPins.some(p => p.id === selectedId);
   const isSaved      = selectedPin ? savedNames.has(selectedPin.name) : false;
+  const isDiscover   = discoverPins.some(p => p.id === selectedId);
 
   // Read result from sessionStorage after processing redirects back here
   useEffect(() => {
@@ -350,7 +326,11 @@ export default function HomeMapClient() {
     if (!dragging.current) return;
     dragging.current = false;
     const relY = Math.max(0, startTranslateY.current + (e.clientY - startClientY.current));
-    const snaps: [SheetSnap, number][] = [['expanded', 0], ['peek', PEEK_TRANSLATE], ['hidden', SHEET_HEIGHT]];
+    // In discover mode (no selected pin) the sheet never hides — minimum is peek
+    const hasContent = !!selectedId || discoverList.length > 0 || discoverLoading;
+    const snaps: [SheetSnap, number][] = hasContent
+      ? [['expanded', 0], ['peek', PEEK_TRANSLATE]]
+      : [['expanded', 0], ['peek', PEEK_TRANSLATE], ['hidden', SHEET_HEIGHT]];
     const [best] = snaps.reduce((a, b) => Math.abs(b[1] - relY) < Math.abs(a[1] - relY) ? b : a);
     if (best === 'hidden') setSelectedId(null);
     setSnap(best);
@@ -358,27 +338,44 @@ export default function HomeMapClient() {
 
   // ── Category ──────────────────────────────────────────────────────────────
   async function handleCategoryPress(cat: Category) {
+    // Deselect — restore the general list
     if (activeCategory === cat.label) {
       setActiveCategory(null);
       setNearbyPins([]);
+      setDiscoverList(discoverAllRef.current);
+      setSelectedId(null);
+      setSnap('peek');
       return;
     }
+
     setActiveCategory(cat.label);
-    setLoadingNearby(true);
     setNearbyPins([]);
     setSelectedId(null);
-    setSnap('hidden');
+    setDiscoverList([]);
+    setDiscoverLoading(true);
+    setSnap('peek');
+
     try {
-      const loc = await new Promise<{ lat: number; lng: number }>((resolve, reject) =>
+      // Get location (use cached if available)
+      const loc: { lat: number; lng: number } = userLocation ?? await new Promise((resolve, reject) =>
         navigator.geolocation.getCurrentPosition(
           p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
           reject, { timeout: 8000 },
         ),
       );
       setUserLocation(loc);
-      setNearbyPins(await fetchNearby(loc.lat, loc.lng, cat));
-    } catch { /* no results */ }
-    finally { setLoadingNearby(false); }
+
+      // Map category to keyword + type for the Places API
+      const keyword = cat.isAmenity ? 'cafe' : (cat.cuisine ?? '').split('|')[0];
+      const type    = cat.isAmenity ? 'cafe' : 'restaurant';
+
+      const qs = new URLSearchParams({
+        lat: String(loc.lat), lng: String(loc.lng), keyword, type,
+      });
+      const data: NearbyRestaurant[] = await fetch(`/api/nearby-restaurants?${qs}`).then(r => r.json());
+      setDiscoverList(data);
+    } catch { /* ignore */ }
+    finally { setDiscoverLoading(false); }
   }
 
   // ── Load saved pins ────────────────────────────────────────────────────────
@@ -408,6 +405,29 @@ export default function HomeMapClient() {
         setSavedNames(new Set(pins.map(p => p.name)));
       }
     })();
+  }, []);
+
+  // ── Auto-load discover restaurants on mount ───────────────────────────────
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setDiscoverLoading(true);
+        try {
+          const data: NearbyRestaurant[] = await fetch(
+            `/api/nearby-restaurants?lat=${lat}&lng=${lng}`,
+          ).then(r => r.json());
+          setDiscoverList(data);
+          discoverAllRef.current = data;
+          // Auto-peek discover sheet if no result is showing yet
+          setSnap(prev => prev === 'hidden' ? 'peek' : prev);
+        } catch { /* ignore */ }
+        finally { setDiscoverLoading(false); }
+      },
+      () => { /* no location — keep sheet hidden */ },
+      { timeout: 8000 },
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Save / unsave ─────────────────────────────────────────────────────────
@@ -450,51 +470,33 @@ export default function HomeMapClient() {
     } finally { setSaving(false); }
   }
 
-  async function analyzeOrReuse(rawUrl: string) {
-    if (!rawUrl.trim() || !detectPlatform(rawUrl)) return;
-    const trimmed = rawUrl.trim();
-
-    // Check if this URL was already analyzed and saved
+  async function handleSearch(query: string) {
+    const q = query.trim();
+    if (!q) return;
+    setActiveCategory(null);
+    setDiscoverList([]);
+    setDiscoverLoading(true);
+    setSelectedId(null);
+    setSnap('peek');
     try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('saved_restaurants')
-          .select('id, restaurant_name, lat, lng, cuisine_type, address, rating')
-          .eq('user_id', user.id)
-          .eq('video_url', trimmed)
-          .limit(1)
-          .single();
-
-        if (data?.lat && data?.lng) {
-          const pin: MapPin = {
-            id: `cached-${data.id}`,
-            name: data.restaurant_name,
-            lat: data.lat as number,
-            lng: data.lng as number,
-            cuisineType: data.cuisine_type ?? '',
-            address: data.address ?? '',
-            videoUrl: trimmed,
-            rating: (data as Record<string, unknown>).rating as number | null ?? null,
-          };
-          setResultPins([pin]);
-          setSelectedId(pin.id);
-          setSnap('peek');
-          showToast('Loaded from your saved places');
-          setUrl('');
-          return;
-        }
-      }
-    } catch { /* not cached — fall through to processing */ }
-
-    router.push(`/processing?url=${encodeURIComponent(trimmed)}`);
+      const loc: { lat: number; lng: number } = userLocation ?? await new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(
+          p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }),
+          reject, { timeout: 8000 },
+        ),
+      );
+      setUserLocation(loc);
+      const qs = new URLSearchParams({ lat: String(loc.lat), lng: String(loc.lng), keyword: q });
+      const data: NearbyRestaurant[] = await fetch(`/api/nearby-restaurants?${qs}`).then(r => r.json());
+      setDiscoverList(data);
+      if (data.length === 0) showToast('No results found nearby', false);
+    } catch { showToast('Could not get location', false); }
+    finally { setDiscoverLoading(false); }
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!isValid) return;
-    analyzeOrReuse(url);
+    handleSearch(searchQuery);
   }
 
   // ─── Render ───────────────────────────────────────────────────────────────
@@ -504,7 +506,7 @@ export default function HomeMapClient() {
         <HomeMap
           savedPins={savedPins}
           nearbyPins={nearbyPins}
-          resultPins={resultPins}
+          resultPins={mapResultPins}
           selectedId={selectedId}
           onSelect={handlePinSelect}
           userLocation={userLocation}
@@ -516,26 +518,20 @@ export default function HomeMapClient() {
         <form onSubmit={handleSubmit}>
           <div className="flex items-center gap-2 rounded-xl px-3 py-2.5"
             style={{ background: 'white', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.06)' }}>
-            {PlatformIcon ? <PlatformIcon size={14} color="#0F6E56" /> : <IconLink size={14} color="#888780" />}
+            <img src="/logo.png" alt="FoodApp" style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }} />
+            <IconSearch size={14} color="#888780" />
             <input
-              type="url" value={url}
-              onChange={e => setUrl(e.target.value)}
-              onPaste={e => {
-                const text = e.clipboardData.getData('text');
-                if (detectPlatform(text)) {
-                  e.preventDefault();
-                  setUrl(text);
-                  setTimeout(() => analyzeOrReuse(text), 80);
-                }
-              }}
-              placeholder="Paste a food video link to find a restaurant…"
+              type="search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search restaurants, cuisines, dishes…"
               className="flex-1 outline-none bg-transparent"
               style={{ fontSize: 10, color: '#2C2C2A' }}
             />
-            {isValid && (
+            {searchQuery.trim() && (
               <button type="submit"
-                style={{ fontSize: 9, fontWeight: 600, color: 'white', background: '#0F6E56', border: 'none', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
-                Go
+                style={{ fontSize: 9, fontWeight: 600, color: 'white', background: '#E24B4A', border: 'none', borderRadius: 8, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
+                Search
               </button>
             )}
           </div>
@@ -549,14 +545,14 @@ export default function HomeMapClient() {
               <button key={cat.label} onClick={() => handleCategoryPress(cat)}
                 style={{
                   fontSize: 9, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0,
-                  border: `1px solid ${active ? '#0F6E56' : 'rgba(0,0,0,0.10)'}`,
-                  background: active ? '#0F6E56' : 'rgba(255,255,255,0.96)',
+                  border: `1px solid ${active ? '#E03030' : 'rgba(0,0,0,0.10)'}`,
+                  background: active ? '#E03030' : 'rgba(255,255,255,0.96)',
                   color: active ? 'white' : '#2C2C2A', borderRadius: 9999,
                   padding: '5px 10px', cursor: 'pointer', fontFamily: 'inherit',
                   boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
                   display: 'flex', alignItems: 'center', gap: 4,
                 }}>
-                {loadingNearby && active && <IconLoader2 size={9} style={{ animation: 'spin 0.8s linear infinite' }} />}
+                {discoverLoading && active && <IconLoader2 size={9} style={{ animation: 'spin 0.8s linear infinite' }} />}
                 {cat.label}
               </button>
             );
@@ -585,12 +581,12 @@ export default function HomeMapClient() {
         <div className="flex gap-2 mt-1.5">
           {savedPins.length > 0 && !activeCategory && snap === 'hidden' && (
             <div className="flex items-center gap-1 px-2.5 py-1 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 1px 6px rgba(0,0,0,0.1)', fontSize: 8, color: '#0F6E56', fontWeight: 500 }}>
-              <IconMapPin size={10} color="#0F6E56" />
+              style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 1px 6px rgba(0,0,0,0.1)', fontSize: 8, color: '#E03030', fontWeight: 500 }}>
+              <IconMapPin size={10} color="#E03030" />
               {savedPins.length} saved
             </div>
           )}
-          {activeCategory && !loadingNearby && (
+          {activeCategory && !discoverLoading && (
             <div className="flex items-center gap-1 px-2.5 py-1 rounded-full"
               style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 1px 6px rgba(0,0,0,0.1)', fontSize: 8, color: nearbyPins.length > 0 ? '#E85D04' : '#888780', fontWeight: 500 }}>
               <IconMapPin size={10} color={nearbyPins.length > 0 ? '#E85D04' : '#D3D1C7'} />
@@ -604,7 +600,7 @@ export default function HomeMapClient() {
       {toast && (
         <div style={{
           position: 'absolute', bottom: 90, left: '50%', transform: 'translateX(-50%)', zIndex: 50,
-          background: toast.ok ? '#0F6E56' : '#E24B4A', color: 'white',
+          background: toast.ok ? '#E03030' : '#E24B4A', color: 'white',
           borderRadius: 99, padding: '8px 18px', fontSize: 10, fontWeight: 600,
           boxShadow: '0 4px 16px rgba(0,0,0,0.2)', whiteSpace: 'nowrap',
           animation: 'fadeUp 0.2s ease',
@@ -637,8 +633,8 @@ export default function HomeMapClient() {
                 <button key={pin.id} onClick={() => { setSelectedId(pin.id); setSnap('peek'); }}
                   style={{
                     flexShrink: 0, width: 160, borderRadius: 14, padding: '10px 12px',
-                    background: active ? '#0F6E56' : 'white',
-                    border: active ? '2px solid #0F6E56' : '1.5px solid rgba(0,0,0,0.08)',
+                    background: active ? '#E03030' : 'white',
+                    border: active ? '2px solid #E03030' : '1.5px solid rgba(0,0,0,0.08)',
                     boxShadow: '0 4px 14px rgba(0,0,0,0.14)', textAlign: 'left', cursor: 'pointer',
                     fontFamily: 'inherit',
                   }}>
@@ -664,8 +660,8 @@ export default function HomeMapClient() {
                     {pin.confidence != null && (
                       <span style={{
                         fontSize: 7, fontWeight: 600, borderRadius: 99, padding: '2px 6px',
-                        background: active ? 'rgba(255,255,255,0.2)' : (pin.confidence >= 70 ? '#E1F5EE' : '#FFF3E0'),
-                        color: active ? 'white' : (pin.confidence >= 70 ? '#0F6E56' : '#E85D04'),
+                        background: active ? 'rgba(255,255,255,0.2)' : (pin.confidence >= 70 ? '#FFF0F0' : '#FFF3E0'),
+                        color: active ? 'white' : (pin.confidence >= 70 ? '#E03030' : '#E85D04'),
                       }}>
                         {pin.confidence}%
                       </span>
@@ -693,12 +689,23 @@ export default function HomeMapClient() {
           </div>
           {selectedPin && (
             <div style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 10 }}>
+              {/* Back to list (only from discover) */}
+              {isDiscover && (
+                <button
+                  onPointerDown={e => e.stopPropagation()}
+                  onClick={() => { setSelectedId(null); setSnap('peek'); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px', fontFamily: 'inherit' }}>
+                  <IconArrowLeft size={13} color="#E24B4A" />
+                  <span style={{ fontSize: 9, fontWeight: 600, color: '#E24B4A' }}>Back to list</span>
+                </button>
+              )}
               {/* Name row + save button */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <p style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A', margin: '0 0 4px', lineHeight: 1.25, flex: 1 }}>
                   {selectedPin.name}
                 </p>
                 <button onClick={handleSave} disabled={saving}
+                  onPointerDown={e => e.stopPropagation()}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0, marginTop: 1 }}>
                   {isSaved
                     ? <IconHeartFilled size={20} color="#E24B4A" />
@@ -714,7 +721,7 @@ export default function HomeMapClient() {
                   </span>
                 )}
                 {details?.openNow != null && (
-                  <span style={{ fontSize: 8, fontWeight: 600, color: details.openNow ? '#0F6E56' : '#E24B4A' }}>
+                  <span style={{ fontSize: 8, fontWeight: 600, color: details.openNow ? '#E03030' : '#E24B4A' }}>
                     {details.openNow ? '● Open' : '● Closed'}
                   </span>
                 )}
@@ -728,6 +735,7 @@ export default function HomeMapClient() {
                 <p style={{ fontSize: 9, color: '#888780', margin: 0 }}>{selectedPin.cuisineType}</p>
                 {isResult && (
                   <button onClick={handleWrongPlace}
+                    onPointerDown={e => e.stopPropagation()}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 8, color: '#B0AFA9', padding: 0, fontFamily: 'inherit' }}>
                     Wrong place?
                   </button>
@@ -736,6 +744,92 @@ export default function HomeMapClient() {
             </div>
           )}
         </div>
+
+        {/* ── Discover list (shown when no restaurant is selected) ── */}
+        {!selectedPin && (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 10px', flexShrink: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>
+                {discoverLoading ? 'Finding restaurants…' : `${discoverList.length} restaurants near you`}
+              </p>
+              <button onClick={() => setSnap(snap === 'peek' ? 'expanded' : 'peek')}
+                style={{ background: '#F7F6F3', border: 'none', borderRadius: 99, width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                {snap === 'peek' ? <IconChevronUp size={13} color="#888780" /> : <IconChevronDown size={13} color="#888780" />}
+              </button>
+            </div>
+            <div style={{ height: 1, background: '#F0EFEC', marginBottom: 8 }} />
+
+            {/* Loading skeletons */}
+            {discoverLoading && (
+              <div style={{ padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[1,2,3].map(i => (
+                  <div key={i} style={{ display: 'flex', borderRadius: 14, overflow: 'hidden', border: '1px solid #F0EFEC', height: 82 }}>
+                    <div style={{ width: 90, background: '#EEEDEA', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <IconLoader2 size={14} color="#D3D1C7" style={{ animation: 'spin 0.8s linear infinite' }} />
+                    </div>
+                    <div style={{ flex: 1, padding: '10px 12px' }}>
+                      <div style={{ height: 9, background: '#EEEDEA', borderRadius: 5, width: '65%', marginBottom: 8 }} />
+                      <div style={{ height: 7, background: '#EEEDEA', borderRadius: 5, width: '45%', marginBottom: 6 }} />
+                      <div style={{ height: 7, background: '#EEEDEA', borderRadius: 5, width: '55%' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Restaurant cards */}
+            {!discoverLoading && (
+              <div style={{ padding: '0 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {discoverList.map((r, i) => {
+                  const pinId = `disc-${r.placeId}`;
+                  const active = selectedId === pinId;
+                  return (
+                    <div key={r.placeId}
+                      onClick={() => { setSelectedId(pinId); setSnap('peek'); }}
+                      style={{ display: 'flex', borderRadius: 14, overflow: 'hidden', border: `1.5px solid ${active ? '#E24B4A' : '#F0EFEC'}`, cursor: 'pointer', background: active ? '#FFF5F5' : 'white', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', transition: 'all 0.15s' }}>
+
+                      {/* Photo — full left column */}
+                      <div style={{ width: 90, flexShrink: 0, position: 'relative', background: '#F0EFEC', minHeight: 88 }}>
+                        {r.photoUrl
+                          ? <img src={r.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'absolute', inset: 0 }}
+                              onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                          : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🍽️</div>}
+                        {/* Number badge */}
+                        <div style={{ position: 'absolute', top: 6, left: 6, width: 20, height: 20, borderRadius: '50%', background: active ? '#E24B4A' : 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 9, fontWeight: 700, color: 'white' }}>{i + 1}</span>
+                        </div>
+                        {/* Open badge */}
+                        {r.openNow != null && (
+                          <div style={{ position: 'absolute', bottom: 6, left: 6, background: r.openNow ? '#E03030' : '#E24B4A', borderRadius: 99, padding: '2px 5px' }}>
+                            <span style={{ fontSize: 7, fontWeight: 600, color: 'white' }}>{r.openNow ? 'Open' : 'Closed'}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ flex: 1, padding: '10px 10px 10px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
+                        <div>
+                          <p style={{ fontSize: 11, fontWeight: 700, color: '#2C2C2A', margin: '0 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.name}</p>
+                          <StarRating rating={r.rating} count={r.ratingCount} />
+                          <span style={{ fontSize: 8, color: '#888780', display: 'block', marginTop: 2 }}>{r.cuisineHint}</span>
+                        </div>
+                        {/* Actions */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+                          <span style={{ fontSize: 8, color: '#B0AFA9' }}>{r.address.split(',')[0]}</span>
+                          <a href="tel:" onClick={e => e.stopPropagation()}
+                            style={{ width: 28, height: 28, borderRadius: '50%', background: '#E24B4A', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', flexShrink: 0 }}>
+                            <IconPhone size={12} color="white" />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Scrollable expanded content */}
         {selectedPin && (
@@ -807,7 +901,7 @@ export default function HomeMapClient() {
                         <p style={{ fontSize: 7.5, color: '#888780', margin: '0 0 5px' }}>
                           {sug.cuisineType || 'Restaurant'}
                         </p>
-                        <span style={{ fontSize: 7, background: '#E1F5EE', color: '#0F6E56', borderRadius: 99, padding: '2px 7px', fontWeight: 600 }}>
+                        <span style={{ fontSize: 7, background: '#FFF0F0', color: '#E03030', borderRadius: 99, padding: '2px 7px', fontWeight: 600 }}>
                           View →
                         </span>
                       </button>
@@ -852,7 +946,7 @@ export default function HomeMapClient() {
                 )}
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedPin.name} ${selectedPin.address}`)}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, padding: '9px 0', background: '#0F6E56', textDecoration: 'none', fontSize: 9, fontWeight: 600, color: 'white' }}>
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, padding: '9px 0', background: '#E03030', textDecoration: 'none', fontSize: 9, fontWeight: 600, color: 'white' }}>
                   🗺 Directions
                 </a>
               </div>
@@ -891,7 +985,7 @@ export default function HomeMapClient() {
               {details?.phone && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontSize: 14 }}>📞</span>
-                  <a href={`tel:${details.phone}`} style={{ fontSize: 9, color: '#0F6E56', margin: 0, textDecoration: 'none', fontWeight: 500 }}>{details.phone}</a>
+                  <a href={`tel:${details.phone}`} style={{ fontSize: 9, color: '#E03030', margin: 0, textDecoration: 'none', fontWeight: 500 }}>{details.phone}</a>
                 </div>
               )}
 
@@ -907,7 +1001,7 @@ export default function HomeMapClient() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {details!.topReviews.map((review, i) => {
                       const positive = review.rating >= 4;
-                      const accent   = positive ? '#0F6E56' : review.rating <= 2 ? '#E24B4A' : '#888780';
+                      const accent   = positive ? '#E03030' : review.rating <= 2 ? '#E24B4A' : '#888780';
                       const bg       = positive ? '#F0FAF5' : review.rating <= 2 ? '#FEF2F2' : '#F7F6F3';
                       return (
                         <div key={i} style={{ background: bg, borderRadius: 10, padding: '9px 12px', borderLeft: `3px solid ${accent}` }}>
@@ -940,7 +1034,7 @@ export default function HomeMapClient() {
                     <p style={{ fontSize: 9, fontWeight: 600, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Spotted in video</p>
                     {selectedPin.confidence != null && (
                       <span style={{ fontSize: 7, fontWeight: 700, color: 'white',
-                        background: selectedPin.confidence >= 80 ? '#0F6E56' : selectedPin.confidence >= 60 ? '#E8A020' : '#E24B4A',
+                        background: selectedPin.confidence >= 80 ? '#E03030' : selectedPin.confidence >= 60 ? '#E8A020' : '#E24B4A',
                         borderRadius: 99, padding: '2px 6px' }}>
                         {selectedPin.confidence}% match
                       </span>
@@ -1034,7 +1128,7 @@ export default function HomeMapClient() {
               {details && !details.phone && !details.website && (
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedPin.name} ${selectedPin.address}`)}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, padding: '11px 0', background: '#0F6E56', color: 'white', fontSize: 10, fontWeight: 600, textDecoration: 'none', marginTop: 4 }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, padding: '11px 0', background: '#E03030', color: 'white', fontSize: 10, fontWeight: 600, textDecoration: 'none', marginTop: 4 }}>
                   <IconMapPin size={13} />
                   Get Directions
                 </a>

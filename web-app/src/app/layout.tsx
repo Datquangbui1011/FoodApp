@@ -12,6 +12,11 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "FoodMap AI",
   description: "Paste a food video, find the restaurant",
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+    shortcut: '/logo.png',
+  },
 };
 
 export default function RootLayout({

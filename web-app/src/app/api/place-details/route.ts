@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const KEY    = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
+const KEY    = process.env.GOOGLE_PLACES_API_KEY ?? process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 const CSE_ID = process.env.GOOGLE_CSE_ID ?? '';
 
 export interface TikTokVideo {
@@ -63,9 +63,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<PlaceDetails>>
   const allRefs = [...(place.photoRefs ?? []), ...(details.photoRefs ?? [])]
     .filter((r, i, a) => a.indexOf(r) === i)
     .slice(0, 4);
-  const photoUrls = allRefs.map(ref =>
-    `https://maps.googleapis.com/maps/api/place/photo?maxwidth=600&photo_reference=${ref}&key=${KEY}`,
-  );
+  const photoUrls = allRefs.map(ref => `/api/photo?ref=${encodeURIComponent(ref)}`);
 
   const dayIndex = (new Date().getDay() + 6) % 7;
   const hoursToday = details.weekdayText?.[dayIndex]?.replace(/^[^:]+:\s*/, '') ?? null;

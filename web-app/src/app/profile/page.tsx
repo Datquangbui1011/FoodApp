@@ -43,17 +43,17 @@ export default async function Profile() {
     <div className="flex flex-col flex-1">
 
       {/* Header */}
-      <div style={{ background: '#0F6E56' }}>
+      <div style={{ background: '#E03030' }}>
         <StatusBar dark />
         <div className="px-3.5 pt-1 pb-6 text-center">
           <div
             className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"
-            style={{ background: '#1D9E75', border: '2.5px solid #9FE1CB', fontSize: 16, fontWeight: 600, color: 'white' }}
+            style={{ background: '#1D9E75', border: '2.5px solid #FFB9B8', fontSize: 16, fontWeight: 600, color: 'white' }}
           >
             {initials}
           </div>
           <p style={{ color: 'white', fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{username}</p>
-          <p style={{ color: '#9FE1CB', fontSize: 9 }}>@{username} · Member since {memberYear}</p>
+          <p style={{ color: '#FFB9B8', fontSize: 9 }}>@{username} · Member since {memberYear}</p>
         </div>
       </div>
 

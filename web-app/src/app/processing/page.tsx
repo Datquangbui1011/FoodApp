@@ -139,10 +139,10 @@ export default function Processing() {
     <div className="flex flex-col flex-1">
 
       {/* Header */}
-      <div style={{ background: '#0F6E56' }}>
+      <div style={{ background: '#E03030' }}>
         <StatusBar dark />
         <div className="flex items-center gap-2 px-3.5 pb-3">
-          <Link href="/"><IconArrowLeft size={16} color="#9FE1CB" /></Link>
+          <Link href="/"><IconArrowLeft size={16} color="#FFB9B8" /></Link>
           <span style={{ color: 'white', fontSize: 13, fontWeight: 500, flex: 1 }}>Analyzing video</span>
         </div>
       </div>
@@ -178,7 +178,7 @@ export default function Processing() {
               </div>
             )}
             <Link href="/" className="px-4 py-2 rounded-lg mt-2"
-              style={{ background: '#0F6E56', color: 'white', fontSize: 10, fontWeight: 500 }}>
+              style={{ background: '#E03030', color: 'white', fontSize: 10, fontWeight: 500 }}>
               Try again
             </Link>
           </div>
@@ -198,19 +198,19 @@ export default function Processing() {
                   <div key={label} className="flex items-center gap-2.5">
                     <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{
-                        background: state === 'done' ? '#E1F5EE' : state === 'active' ? '#EEEDFE' : '#F7F6F3',
+                        background: state === 'done' ? '#FFF0F0' : state === 'active' ? '#EEEDFE' : '#F7F6F3',
                         border: state === 'active' ? '1.5px solid #7F77DD' : 'none',
                       }}>
                       <Icon
                         size={13}
-                        color={state === 'done' ? '#0F6E56' : state === 'active' ? '#534AB7' : '#D3D1C7'}
+                        color={state === 'done' ? '#E03030' : state === 'active' ? '#534AB7' : '#D3D1C7'}
                         style={state === 'active' ? { animation: 'spin 1s linear infinite' } : {}}
                       />
                     </div>
                     <div>
                       <p style={{
                         fontSize: 9, fontWeight: 500, marginBottom: 1,
-                        color: state === 'done' ? '#0F6E56' : state === 'active' ? '#534AB7' : '#888780',
+                        color: state === 'done' ? '#E03030' : state === 'active' ? '#534AB7' : '#888780',
                       }}>
                         {label}
                       </p>

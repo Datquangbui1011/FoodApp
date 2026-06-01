@@ -30,11 +30,11 @@ export default function HomeClient() {
       <form onSubmit={handleSubmit}>
         <div className="flex items-center gap-1.5 bg-white rounded-lg px-2.5 py-2">
           {platform === 'tiktok' ? (
-            <IconBrandTiktok size={13} color="#0F6E56" />
+            <IconBrandTiktok size={13} color="#E03030" />
           ) : platform === 'instagram' ? (
-            <IconBrandInstagram size={13} color="#0F6E56" />
+            <IconBrandInstagram size={13} color="#E03030" />
           ) : platform === 'facebook' ? (
-            <IconBrandFacebook size={13} color="#0F6E56" />
+            <IconBrandFacebook size={13} color="#E03030" />
           ) : (
             <IconLink size={13} color="#888780" />
           )}
@@ -52,7 +52,7 @@ export default function HomeClient() {
             style={{
               fontSize: 8,
               fontWeight: 600,
-              color: isValid ? '#0F6E56' : '#D3D1C7',
+              color: isValid ? '#E03030' : '#D3D1C7',
               background: 'none',
               border: 'none',
               cursor: isValid ? 'pointer' : 'default',

@@ -1,37 +1,81 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { IconMail, IconLock, IconAlertCircle } from '@tabler/icons-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  IconMail, IconLock, IconAlertCircle,
+  IconUser, IconEye, IconEyeOff, IconCheck, IconX,
+} from '@tabler/icons-react';
 import { createClient } from '@/lib/supabase/client';
 import StatusBar from '../components/StatusBar';
 
 type Mode = 'signin' | 'signup';
 
+function PasswordStrength({ password }: { password: string }) {
+  if (!password) return null;
+  const checks = [
+    { label: 'At least 8 characters', ok: password.length >= 8 },
+    { label: 'Contains a number',      ok: /\d/.test(password) },
+    { label: 'Contains a letter',      ok: /[a-zA-Z]/.test(password) },
+  ];
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 4 }}>
+      {checks.map(c => (
+        <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          {c.ok
+            ? <IconCheck size={10} color="#E03030" />
+            : <IconX size={10} color="#D3D1C7" />}
+          <span style={{ fontSize: 8.5, color: c.ok ? '#E03030' : '#B0AFA9' }}>{c.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function AuthPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>('signin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
+  const params = useSearchParams();
+  const initial = params.get('mode') === 'signup' ? 'signup' : 'signin';
+
+  const [mode, setMode]               = useState<Mode>(initial);
+  const [fullName, setFullName]       = useState('');
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
+  const [confirm, setConfirm]         = useState('');
+  const [showPass, setShowPass]       = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [info, setInfo]               = useState<string | null>(null);
+
+  function switchMode(m: Mode) {
+    setMode(m); setError(null); setInfo(null);
+    setFullName(''); setPassword(''); setConfirm('');
+  }
+
+  const passwordsMatch = confirm === '' || password === confirm;
+  const canSubmit = mode === 'signin'
+    ? email && password
+    : fullName.trim() && email && password.length >= 8 && password === confirm;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setInfo(null);
-    setLoading(true);
+    if (!canSubmit) return;
+    setError(null); setInfo(null); setLoading(true);
 
     const supabase = createClient();
 
     if (mode === 'signup') {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName.trim() } },
+      });
       if (error) {
         setError(error.message);
       } else {
         setInfo('Check your email to confirm your account, then sign in.');
-        setMode('signin');
+        switchMode('signin');
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -42,106 +86,150 @@ export default function AuthPage() {
         router.refresh();
       }
     }
-
     setLoading(false);
   }
 
   return (
-    <div className="flex flex-col flex-1">
-      <div style={{ background: '#0F6E56' }}>
+    <div className="flex flex-col flex-1" style={{ background: '#F5EDED' }}>
+      {/* Header */}
+      <div style={{ background: '#E03030' }}>
         <StatusBar dark />
-        <div className="px-3.5 pt-1 pb-6 text-center">
-          <h1 style={{ color: 'white', fontSize: 18, fontWeight: 700, marginBottom: 4 }}>FoodMap</h1>
-          <p style={{ color: '#9FE1CB', fontSize: 9 }}>Find any restaurant from a video</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 20px' }}>
+          <div style={{ width: 72, height: 72, borderRadius: 18, overflow: 'hidden', marginBottom: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
+            <img src="/logo.png" alt="Foody" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+          <p style={{ color: 'white', fontSize: 18, fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Foody</p>
+          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, margin: '3px 0 0' }}>
+            {mode === 'signup' ? 'Create your account' : 'Welcome back'}
+          </p>
         </div>
       </div>
 
-      {/* Card */}
-      <div className="flex-1 px-4 pt-5">
-        {/* Mode tabs */}
-        <div className="flex rounded-lg overflow-hidden mb-5" style={{ border: '1px solid rgba(0,0,0,0.1)' }}>
-          {(['signin', 'signup'] as Mode[]).map((m) => (
-            <button
-              key={m}
-              onClick={() => { setMode(m); setError(null); setInfo(null); }}
-              className="flex-1 py-2"
-              style={{
-                fontSize: 9,
-                fontWeight: 600,
-                fontFamily: 'inherit',
-                border: 'none',
-                cursor: 'pointer',
-                background: mode === m ? '#0F6E56' : 'white',
-                color: mode === m ? 'white' : '#888780',
-              }}
-            >
-              {m === 'signin' ? 'Sign in' : 'Sign up'}
-            </button>
-          ))}
-        </div>
+      {/* Mode tabs */}
+      <div style={{ margin: '16px 16px 0', display: 'flex', background: 'white', borderRadius: 12, padding: 3, boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
+        {(['signin', 'signup'] as Mode[]).map(m => (
+          <button key={m} onClick={() => switchMode(m)}
+            style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11, fontWeight: 600, transition: 'all 0.2s',
+              background: mode === m ? '#E03030' : 'transparent',
+              color: mode === m ? 'white' : '#888780',
+              boxShadow: mode === m ? '0 2px 8px rgba(224,48,48,0.3)' : 'none',
+            }}>
+            {m === 'signin' ? 'Sign in' : 'Sign up'}
+          </button>
+        ))}
+      </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2.5">
+      {/* Form */}
+      <div style={{ flex: 1, padding: '16px 16px 24px', overflowY: 'auto' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+          {/* Full Name — signup only */}
+          {mode === 'signup' && (
+            <div>
+              <label style={{ fontSize: 9, fontWeight: 600, color: '#5F5E5A', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Full Name</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', borderRadius: 12, padding: '11px 14px', border: '1.5px solid #F0EFEC', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+                <IconUser size={14} color="#D3D1C7" />
+                <input
+                  type="text" value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  placeholder="Jane Doe"
+                  required={mode === 'signup'}
+                  style={{ flex: 1, outline: 'none', background: 'transparent', fontSize: 12, color: '#2C2C2A', border: 'none', fontFamily: 'inherit' }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Email */}
-          <div className="flex items-center gap-2 rounded-lg px-3 py-2.5"
-            style={{ background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)' }}>
-            <IconMail size={13} color="#888780" />
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email address"
-              required
-              className="flex-1 outline-none bg-transparent"
-              style={{ fontSize: 10, color: '#2C2C2A' }}
-            />
+          <div>
+            <label style={{ fontSize: 9, fontWeight: 600, color: '#5F5E5A', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Email Address</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', borderRadius: 12, padding: '11px 14px', border: '1.5px solid #F0EFEC', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+              <IconMail size={14} color="#D3D1C7" />
+              <input
+                type="email" value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="jane@example.com"
+                required
+                style={{ flex: 1, outline: 'none', background: 'transparent', fontSize: 12, color: '#2C2C2A', border: 'none', fontFamily: 'inherit' }}
+              />
+            </div>
           </div>
 
           {/* Password */}
-          <div className="flex items-center gap-2 rounded-lg px-3 py-2.5"
-            style={{ background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)' }}>
-            <IconLock size={13} color="#888780" />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              required
-              minLength={6}
-              className="flex-1 outline-none bg-transparent"
-              style={{ fontSize: 10, color: '#2C2C2A' }}
-            />
+          <div>
+            <label style={{ fontSize: 9, fontWeight: 600, color: '#5F5E5A', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Password</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', borderRadius: 12, padding: '11px 14px', border: '1.5px solid #F0EFEC', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+              <IconLock size={14} color="#D3D1C7" />
+              <input
+                type={showPass ? 'text' : 'password'} value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder={mode === 'signup' ? 'Min. 8 characters' : 'Your password'}
+                required minLength={mode === 'signup' ? 8 : 1}
+                style={{ flex: 1, outline: 'none', background: 'transparent', fontSize: 12, color: '#2C2C2A', border: 'none', fontFamily: 'inherit' }}
+              />
+              <button type="button" onClick={() => setShowPass(p => !p)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                {showPass ? <IconEyeOff size={14} color="#B0AFA9" /> : <IconEye size={14} color="#B0AFA9" />}
+              </button>
+            </div>
+            {mode === 'signup' && <PasswordStrength password={password} />}
           </div>
+
+          {/* Confirm Password — signup only */}
+          {mode === 'signup' && (
+            <div>
+              <label style={{ fontSize: 9, fontWeight: 600, color: '#5F5E5A', display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Confirm Password</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', borderRadius: 12, padding: '11px 14px', border: `1.5px solid ${!passwordsMatch ? '#E24B4A' : '#F0EFEC'}`, boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+                <IconLock size={14} color={!passwordsMatch ? '#E24B4A' : '#D3D1C7'} />
+                <input
+                  type={showConfirm ? 'text' : 'password'} value={confirm}
+                  onChange={e => setConfirm(e.target.value)}
+                  placeholder="Re-enter password"
+                  required={mode === 'signup'}
+                  style={{ flex: 1, outline: 'none', background: 'transparent', fontSize: 12, color: '#2C2C2A', border: 'none', fontFamily: 'inherit' }}
+                />
+                <button type="button" onClick={() => setShowConfirm(p => !p)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                  {showConfirm ? <IconEyeOff size={14} color="#B0AFA9" /> : <IconEye size={14} color="#B0AFA9" />}
+                </button>
+              </div>
+              {!passwordsMatch && confirm && (
+                <p style={{ fontSize: 8.5, color: '#E24B4A', marginTop: 4, marginLeft: 4 }}>Passwords do not match</p>
+              )}
+            </div>
+          )}
 
           {/* Error / info */}
           {error && (
-            <div className="flex items-center gap-1.5 rounded-lg px-3 py-2"
-              style={{ background: '#FEF0F0', border: '1px solid #F5C4C4' }}>
-              <IconAlertCircle size={12} color="#E24B4A" />
-              <p style={{ fontSize: 9, color: '#A32D2D' }}>{error}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#FEF0F0', border: '1px solid #F5C4C4', borderRadius: 10, padding: '10px 12px' }}>
+              <IconAlertCircle size={13} color="#E24B4A" />
+              <p style={{ fontSize: 9.5, color: '#A32D2D', margin: 0 }}>{error}</p>
             </div>
           )}
           {info && (
-            <div className="rounded-lg px-3 py-2" style={{ background: '#E1F5EE', border: '1px solid #9FE1CB' }}>
-              <p style={{ fontSize: 9, color: '#085041' }}>{info}</p>
+            <div style={{ background: '#FFF0F0', border: '1px solid #FFB9B8', borderRadius: 10, padding: '10px 12px' }}>
+              <p style={{ fontSize: 9.5, color: '#B52020', margin: 0 }}>{info}</p>
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 rounded-lg mt-1"
-            style={{
-              background: loading ? '#D3D1C7' : '#0F6E56',
-              color: 'white',
-              fontSize: 10,
-              fontWeight: 600,
-              border: 'none',
-              cursor: loading ? 'default' : 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
+          {/* Submit */}
+          <button type="submit" disabled={loading || !canSubmit}
+            style={{ padding: '13px 0', borderRadius: 12, border: 'none', cursor: loading || !canSubmit ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, marginTop: 4,
+              background: loading || !canSubmit ? '#D3D1C7' : '#E03030',
+              color: 'white', boxShadow: loading || !canSubmit ? 'none' : '0 4px 16px rgba(224,48,48,0.35)',
+            }}>
             {loading ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
           </button>
+
+          {mode === 'signin' && (
+            <p style={{ textAlign: 'center', fontSize: 10, color: '#888780', margin: 0 }}>
+              Don&apos;t have an account?{' '}
+              <button type="button" onClick={() => switchMode('signup')}
+                style={{ background: 'none', border: 'none', color: '#E03030', fontWeight: 600, cursor: 'pointer', fontSize: 10, fontFamily: 'inherit' }}>
+                Sign up
+              </button>
+            </p>
+          )}
         </form>
       </div>
     </div>

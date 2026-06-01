@@ -3,38 +3,30 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  IconHome,
-  IconHeart,
+  IconSearch,
+  IconVideo,
+  IconBookmark,
   IconUser,
 } from '@tabler/icons-react';
 
 const tabs = [
-  { label: 'Home', href: '/', icon: IconHome },
-  { label: 'Saved', href: '/saved', icon: IconHeart },
-  { label: 'Profile', href: '/profile', icon: IconUser },
+  { label: 'Search',      href: '/',        icon: IconSearch   },
+  { label: 'Video',       href: '/video',   icon: IconVideo    },
+  { label: 'Collections', href: '/saved',   icon: IconBookmark },
+  { label: 'Me',          href: '/profile', icon: IconUser     },
 ];
 
 export default function TabBar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex justify-around items-center pt-2 pb-3 border-t border-black/8 bg-white mt-auto">
+    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', paddingTop: 8, paddingBottom: 14, borderTop: '1px solid rgba(0,0,0,0.06)', background: 'white', flexShrink: 0 }}>
       {tabs.map(({ label, href, icon: Icon }) => {
         const active = pathname === href;
         return (
-          <Link
-            key={href}
-            href={href}
-            className="flex flex-col items-center gap-0.5"
-          >
-            <Icon
-              size={22}
-              stroke={1.8}
-              color={active ? '#0F6E56' : '#D3D1C7'}
-            />
-            <span
-              style={{ fontSize: 9, fontWeight: 500, color: active ? '#0F6E56' : '#888780' }}
-            >
+          <Link key={href} href={href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, textDecoration: 'none' }}>
+            <Icon size={22} stroke={1.8} color={active ? '#E24B4A' : '#D3D1C7'} />
+            <span style={{ fontSize: 9, fontWeight: 500, color: active ? '#E24B4A' : '#888780' }}>
               {label}
             </span>
           </Link>

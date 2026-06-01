@@ -49,9 +49,9 @@ export default function Explore() {
                   fontWeight: 500,
                   whiteSpace: 'nowrap',
                   border: '1px solid rgba(0,0,0,0.1)',
-                  background: active ? '#0F6E56' : 'white',
+                  background: active ? '#E03030' : 'white',
                   color: active ? 'white' : '#5F5E5A',
-                  borderColor: active ? '#0F6E56' : 'rgba(0,0,0,0.1)',
+                  borderColor: active ? '#E03030' : 'rgba(0,0,0,0.1)',
                   cursor: 'pointer',
                   fontFamily: 'inherit',
                 }}
@@ -72,7 +72,7 @@ export default function Explore() {
           <IconSearch size={12} color="#888780" />
           <span style={{ fontSize: 9, color: '#888780' }}>Search restaurants…</span>
         </div>
-        <IconMapPin size={18} color="#0F6E56" />
+        <IconMapPin size={18} color="#E03030" />
       </div>
 
       {/* Feed */}
