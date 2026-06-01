@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -69,7 +69,7 @@ function errorBody(error: string, url: string) {
 
 const STEP_ICONS = [IconDownload, IconEye, IconLink, IconEye, IconMapPin];
 
-export default function Processing() {
+function ProcessingContent() {
   const router = useRouter();
   const params = useSearchParams();
   const url = params.get('url') || '';
@@ -232,5 +232,13 @@ export default function Processing() {
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
+  );
+}
+
+export default function Processing() {
+  return (
+    <Suspense>
+      <ProcessingContent />
+    </Suspense>
   );
 }

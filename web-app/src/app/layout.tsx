@@ -13,6 +13,12 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Foody",
   description: "Discover restaurants from food videos",
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Foody',
+  },
   icons: {
     icon: '/logo.png',
     apple: '/logo.png',

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   IconMail, IconLock, IconAlertCircle,
@@ -32,7 +32,7 @@ function PasswordStrength({ password }: { password: string }) {
   );
 }
 
-export default function AuthPage() {
+function AuthContent() {
   const router = useRouter();
   const params = useSearchParams();
   const initial = params.get('mode') === 'signup' ? 'signup' : 'signin';
@@ -233,5 +233,13 @@ export default function AuthPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense>
+      <AuthContent />
+    </Suspense>
   );
 }
