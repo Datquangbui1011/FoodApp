@@ -51,10 +51,10 @@ function Stars({ rating }: { rating: number | null }) {
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
       {[1,2,3,4,5].map(i =>
         i <= full
-          ? <IconStarFilled key={i} size={9} color="#F5A623" />
-          : <IconStar       key={i} size={9} color="#E0DFDB" />,
+          ? <IconStarFilled key={i} size={12} color="#F5A623" />
+          : <IconStar       key={i} size={12} color="#E0DFDB" />,
       )}
-      <span style={{ fontSize: 8, color: '#888780', marginLeft: 2 }}>{rating.toFixed(1)}</span>
+      <span style={{ fontSize: 10, color: '#888780', marginLeft: 2 }}>{rating.toFixed(1)}</span>
     </span>
   );
 }
@@ -215,36 +215,36 @@ export default function DiscoverPage() {
         <StatusBar />
         <div style={{ margin: '0 12px 8px', background: 'white', borderRadius: 16, padding: '10px 14px', boxShadow: '0 2px 16px rgba(0,0,0,0.13)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <IconArrowLeft size={18} color="#2C2C2A" />
+            <IconArrowLeft size={23} color="#2C2C2A" />
           </button>
           <div style={{ flex: 1, textAlign: 'center' }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>Restaurants</p>
+            <p style={{ fontSize: 17, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>Restaurants</p>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
-              <IconMapPin size={9} color="#E24B4A" />
-              <span style={{ fontSize: 9, color: '#888780' }}>Current Location</span>
+              <IconMapPin size={12} color="#E24B4A" />
+              <span style={{ fontSize: 12, color: '#888780' }}>Current Location</span>
             </div>
           </div>
           <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <IconMapPin size={18} color="#888780" />
+            <IconMapPin size={23} color="#888780" />
           </button>
         </div>
 
         {/* Filter bar */}
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', scrollbarWidth: 'none', paddingLeft: 12, paddingRight: 12, marginBottom: 8 }}>
           <button style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, border: '1.5px solid rgba(0,0,0,0.12)', borderRadius: 99, padding: '5px 10px', background: 'white', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-            <IconAdjustmentsHorizontal size={11} color="#2C2C2A" />
-            <span style={{ fontSize: 9, fontWeight: 600, color: '#2C2C2A' }}>Filter</span>
+            <IconAdjustmentsHorizontal size={14} color="#2C2C2A" />
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#2C2C2A' }}>Filter</span>
           </button>
           <button style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3, border: '1.5px solid rgba(0,0,0,0.12)', borderRadius: 99, padding: '5px 10px', background: 'white', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-            <span style={{ fontSize: 9, color: '#2C2C2A' }}>Sort</span>
-            <IconChevronDown size={10} color="#888780" />
+            <span style={{ fontSize: 12, color: '#2C2C2A' }}>Sort</span>
+            <IconChevronDown size={13} color="#888780" />
           </button>
           {FILTERS.map(f => {
             const on = activeFilters.has(f);
             return (
               <button key={f} onClick={() => toggleFilter(f)}
                 style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 3, border: `1.5px solid ${on ? '#E24B4A' : 'rgba(0,0,0,0.12)'}`, borderRadius: 99, padding: '5px 10px', background: on ? '#E24B4A' : 'white', cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                <span style={{ fontSize: 9, color: on ? 'white' : '#2C2C2A', fontWeight: on ? 600 : 400 }}>{f}</span>
+                <span style={{ fontSize: 12, color: on ? 'white' : '#2C2C2A', fontWeight: on ? 600 : 400 }}>{f}</span>
               </button>
             );
           })}
@@ -257,10 +257,10 @@ export default function DiscoverPage() {
             return (
               <button key={cat.label} onClick={() => handleCategory(cat)}
                 style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}>
-                <div style={{ width: 42, height: 42, borderRadius: '50%', border: `2.5px solid ${active ? '#E24B4A' : 'rgba(0,0,0,0.10)'}`, background: active ? '#FFF0F0' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, boxShadow: '0 1px 6px rgba(0,0,0,0.10)' }}>
+                <div style={{ width: 42, height: 42, borderRadius: '50%', border: `2.5px solid ${active ? '#E24B4A' : 'rgba(0,0,0,0.10)'}`, background: active ? '#FFF0F0' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 23, boxShadow: '0 1px 6px rgba(0,0,0,0.10)' }}>
                   {cat.emoji}
                 </div>
-                <span style={{ fontSize: 8, color: active ? '#E24B4A' : '#5F5E5A', fontWeight: active ? 700 : 400 }}>{cat.label}</span>
+                <span style={{ fontSize: 10, color: active ? '#E24B4A' : '#5F5E5A', fontWeight: active ? 700 : 400 }}>{cat.label}</span>
               </button>
             );
           })}
@@ -280,11 +280,11 @@ export default function DiscoverPage() {
         {/* Sheet header */}
         <div style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>
+            <p style={{ fontSize: 17, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>
               {loading ? 'Finding restaurants…' : `${restaurants.length} restaurants nearby`}
             </p>
             {selectedPin && (
-              <p style={{ fontSize: 9, color: '#E24B4A', margin: '1px 0 0', fontWeight: 600 }}>
+              <p style={{ fontSize: 12, color: '#E24B4A', margin: '1px 0 0', fontWeight: 600 }}>
                 #{restaurants.findIndex(r => r.placeId === selectedId) + 1} selected · {selectedPin.name}
               </p>
             )}
@@ -292,8 +292,8 @@ export default function DiscoverPage() {
           <button onClick={() => setSnap(snap === 'peek' ? 'expanded' : 'peek')}
             style={{ background: '#F7F6F3', border: 'none', borderRadius: 99, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             {snap === 'peek'
-              ? <IconChevronUp size={14} color="#888780" />
-              : <IconChevronDown size={14} color="#888780" />}
+              ? <IconChevronUp size={18} color="#888780" />
+              : <IconChevronDown size={18} color="#888780" />}
           </button>
         </div>
 
@@ -308,7 +308,7 @@ export default function DiscoverPage() {
               {[1,2,3].map(i => (
                 <div key={i} style={{ display: 'flex', gap: 10, padding: '10px', background: '#F7F6F3', borderRadius: 12 }}>
                   <div style={{ width: 60, height: 60, borderRadius: 10, background: '#EEEDEA', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <IconLoader2 size={14} color="#D3D1C7" style={{ animation: 'spin 0.8s linear infinite' }} />
+                    <IconLoader2 size={18} color="#D3D1C7" style={{ animation: 'spin 0.8s linear infinite' }} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ height: 9, background: '#EEEDEA', borderRadius: 5, width: '60%', marginBottom: 7 }} />
@@ -330,29 +330,29 @@ export default function DiscoverPage() {
 
                 {/* Number badge */}
                 <div style={{ width: 24, height: 24, borderRadius: '50%', background: active ? '#E24B4A' : '#F0EFEC', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 4 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: active ? 'white' : '#5F5E5A' }}>{i + 1}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: active ? 'white' : '#5F5E5A' }}>{i + 1}</span>
                 </div>
 
                 {/* Thumbnail */}
                 <div style={{ width: 60, height: 60, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: '#F0EFEC' }}>
                   {r.photoUrl
                     ? <img src={r.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🍽️</div>}
+                    : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 29 }}>🍽️</div>}
                 </div>
 
                 {/* Info */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#2C2C2A', margin: '0 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.name}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: '#2C2C2A', margin: '0 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.name}</p>
                   <Stars rating={r.rating} />
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
-                    <span style={{ fontSize: 8, color: '#888780' }}>{r.cuisineHint}</span>
+                    <span style={{ fontSize: 10, color: '#888780' }}>{r.cuisineHint}</span>
                     {r.openNow != null && (
-                      <span style={{ fontSize: 8, fontWeight: 600, color: r.openNow ? '#E03030' : '#E24B4A' }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: r.openNow ? '#E03030' : '#E24B4A' }}>
                         · {r.openNow ? 'Open' : 'Closed'}
                       </span>
                     )}
                     {location && (
-                      <span style={{ fontSize: 8, color: '#B0AFA9', marginLeft: 'auto', flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, color: '#B0AFA9', marginLeft: 'auto', flexShrink: 0 }}>
                         {miles(location.lat, location.lng, r.lat, r.lng)}
                       </span>
                     )}
@@ -363,11 +363,11 @@ export default function DiscoverPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5, flexShrink: 0, justifyContent: 'center' }}>
                   <button onClick={e => { e.stopPropagation(); handleCardTap(r); }}
                     style={{ width: 32, height: 32, borderRadius: '50%', background: '#E03030', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                    <IconMapPin size={14} color="white" />
+                    <IconMapPin size={18} color="white" />
                   </button>
                   <a href={`tel:`} onClick={e => e.stopPropagation()}
                     style={{ width: 32, height: 32, borderRadius: '50%', background: '#E24B4A', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }}>
-                    <IconPhone size={14} color="white" />
+                    <IconPhone size={18} color="white" />
                   </a>
                 </div>
               </div>
@@ -377,8 +377,8 @@ export default function DiscoverPage() {
           {!loading && restaurants.length === 0 && (
             <div style={{ textAlign: 'center', padding: '30px 0' }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>🍽️</div>
-              <p style={{ fontSize: 11, fontWeight: 600, color: '#5F5E5A', margin: '0 0 4px' }}>No restaurants found</p>
-              <p style={{ fontSize: 9, color: '#B0AFA9' }}>Try a different category</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: '#5F5E5A', margin: '0 0 4px' }}>No restaurants found</p>
+              <p style={{ fontSize: 12, color: '#B0AFA9' }}>Try a different category</p>
             </div>
           )}
         </div>

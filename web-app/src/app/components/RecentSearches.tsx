@@ -65,7 +65,7 @@ export default function RecentSearches() {
 
   return (
     <>
-      <p style={{ fontSize: 9, fontWeight: 500, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+      <p style={{ fontSize: 12, fontWeight: 500, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
         Recent searches
       </p>
       {items.map((item) => (
@@ -76,8 +76,8 @@ export default function RecentSearches() {
         >
           <div className="w-8 h-8 rounded-md flex-shrink-0" style={{ background: item.color }} />
           <div className="flex-1">
-            <p style={{ fontSize: 9, fontWeight: 500, color: '#2C2C2A', marginBottom: 1 }}>{item.name}</p>
-            <span style={{ fontSize: 8, color: '#888780' }}>
+            <p style={{ fontSize: 12, fontWeight: 500, color: '#2C2C2A', marginBottom: 1 }}>{item.name}</p>
+            <span style={{ fontSize: 10, color: '#888780' }}>
               {relativeTime(item.time)}{item.confidence !== null ? ` · ${item.confidence}% confident` : ''}
             </span>
           </div>

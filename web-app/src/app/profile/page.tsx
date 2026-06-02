@@ -48,12 +48,12 @@ export default async function Profile() {
         <div className="px-3.5 pt-1 pb-6 text-center">
           <div
             className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"
-            style={{ background: '#1D9E75', border: '2.5px solid #FFB9B8', fontSize: 16, fontWeight: 600, color: 'white' }}
+            style={{ background: '#1D9E75', border: '2.5px solid #FFB9B8', fontSize: 21, fontWeight: 600, color: 'white' }}
           >
             {initials}
           </div>
-          <p style={{ color: 'white', fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{username}</p>
-          <p style={{ color: '#FFB9B8', fontSize: 9 }}>@{username} · Member since {memberYear}</p>
+          <p style={{ color: 'white', fontSize: 17, fontWeight: 600, marginBottom: 2 }}>{username}</p>
+          <p style={{ color: '#FFB9B8', fontSize: 12 }}>@{username} · Member since {memberYear}</p>
         </div>
       </div>
 
@@ -68,8 +68,8 @@ export default async function Profile() {
             className="flex-1 py-2.5 text-center"
             style={{ borderLeft: i > 0 ? '1px solid rgba(0,0,0,0.06)' : 'none' }}
           >
-            <span style={{ display: 'block', fontSize: 16, fontWeight: 600, color: '#2C2C2A' }}>{num}</span>
-            <span style={{ fontSize: 7, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+            <span style={{ display: 'block', fontSize: 21, fontWeight: 600, color: '#2C2C2A' }}>{num}</span>
+            <span style={{ fontSize: 9, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
           </div>
         ))}
       </div>
@@ -82,9 +82,9 @@ export default async function Profile() {
             className="flex items-center gap-2.5 px-3.5 py-2.5 border-b"
             style={{ borderColor: 'rgba(0,0,0,0.06)' }}
           >
-            <Icon size={15} color="#888780" />
-            <span style={{ fontSize: 10, flex: 1, color: '#2C2C2A' }}>{label}</span>
-            <IconChevronRight size={12} color="#D3D1C7" />
+            <Icon size={20} color="#888780" />
+            <span style={{ fontSize: 13, flex: 1, color: '#2C2C2A' }}>{label}</span>
+            <IconChevronRight size={16} color="#D3D1C7" />
           </div>
         ))}
         <SignOutButton />

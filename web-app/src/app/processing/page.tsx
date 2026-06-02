@@ -35,11 +35,11 @@ const INITIAL_STEPS: Step[] = [
 ];
 
 function platformIcon(url: string) {
-  if (url.includes('tiktok')) return <IconBrandTiktok size={13} color="#888780" />;
-  if (url.includes('instagram')) return <IconBrandInstagram size={13} color="#888780" />;
-  if (url.includes('facebook') || url.includes('fb.watch')) return <IconBrandFacebook size={13} color="#888780" />;
-  if (url.includes('youtube') || url.includes('youtu.be')) return <IconBrandYoutube size={13} color="#888780" />;
-  return <IconLink size={13} color="#888780" />;
+  if (url.includes('tiktok')) return <IconBrandTiktok size={17} color="#888780" />;
+  if (url.includes('instagram')) return <IconBrandInstagram size={17} color="#888780" />;
+  if (url.includes('facebook') || url.includes('fb.watch')) return <IconBrandFacebook size={17} color="#888780" />;
+  if (url.includes('youtube') || url.includes('youtu.be')) return <IconBrandYoutube size={17} color="#888780" />;
+  return <IconLink size={17} color="#888780" />;
 }
 
 function shortUrl(url: string) {
@@ -142,8 +142,8 @@ function ProcessingContent() {
       <div style={{ background: '#E03030' }}>
         <StatusBar dark />
         <div className="flex items-center gap-2 px-3.5 pb-3">
-          <Link href="/"><IconArrowLeft size={16} color="#FFB9B8" /></Link>
-          <span style={{ color: 'white', fontSize: 13, fontWeight: 500, flex: 1 }}>Analyzing video</span>
+          <Link href="/"><IconArrowLeft size={21} color="#FFB9B8" /></Link>
+          <span style={{ color: 'white', fontSize: 17, fontWeight: 500, flex: 1 }}>Analyzing video</span>
         </div>
       </div>
 
@@ -152,42 +152,42 @@ function ProcessingContent() {
         <div className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 mb-4"
           style={{ background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)' }}>
           {platformIcon(url)}
-          <span style={{ fontSize: 8, color: '#888780' }}>{shortUrl(url)}</span>
+          <span style={{ fontSize: 10, color: '#888780' }}>{shortUrl(url)}</span>
         </div>
 
         {error ? (
           <div className="flex flex-col items-center gap-3 mt-8">
-            <IconAlertCircle size={32} color="#E24B4A" />
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#2C2C2A', textAlign: 'center' }}>
+            <IconAlertCircle size={42} color="#E24B4A" />
+            <p style={{ fontSize: 16, fontWeight: 600, color: '#2C2C2A', textAlign: 'center' }}>
               {errorTitle(error, url)}
             </p>
-            <p style={{ fontSize: 9, color: '#888780', textAlign: 'center', maxWidth: 220, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 12, color: '#888780', textAlign: 'center', maxWidth: 220, lineHeight: 1.6 }}>
               {errorBody(error, url)}
             </p>
             {error === 'download_failed' && url.includes('tiktok') && (
               <div className="flex gap-2 mt-1">
-                <span style={{ fontSize: 8, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
+                <span style={{ fontSize: 10, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
                   YouTube ✓
                 </span>
-                <span style={{ fontSize: 8, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
+                <span style={{ fontSize: 10, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
                   Instagram ✓
                 </span>
-                <span style={{ fontSize: 8, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
+                <span style={{ fontSize: 10, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
                   Facebook ✓
                 </span>
               </div>
             )}
             <Link href="/" className="px-4 py-2 rounded-lg mt-2"
-              style={{ background: '#E03030', color: 'white', fontSize: 10, fontWeight: 500 }}>
+              style={{ background: '#E03030', color: 'white', fontSize: 13, fontWeight: 500 }}>
               Try again
             </Link>
           </div>
         ) : (
           <>
-            <p style={{ fontSize: 13, fontWeight: 600, color: '#2C2C2A', marginBottom: 3 }}>
+            <p style={{ fontSize: 17, fontWeight: 600, color: '#2C2C2A', marginBottom: 3 }}>
               Finding your restaurant
             </p>
-            <p style={{ fontSize: 9, color: '#888780', marginBottom: 16 }}>
+            <p style={{ fontSize: 12, color: '#888780', marginBottom: 16 }}>
               This usually takes 20–40 seconds
             </p>
 
@@ -202,19 +202,19 @@ function ProcessingContent() {
                         border: state === 'active' ? '1.5px solid #7F77DD' : 'none',
                       }}>
                       <Icon
-                        size={13}
+                        size={17}
                         color={state === 'done' ? '#E03030' : state === 'active' ? '#534AB7' : '#D3D1C7'}
                         style={state === 'active' ? { animation: 'spin 1s linear infinite' } : {}}
                       />
                     </div>
                     <div>
                       <p style={{
-                        fontSize: 9, fontWeight: 500, marginBottom: 1,
+                        fontSize: 12, fontWeight: 500, marginBottom: 1,
                         color: state === 'done' ? '#E03030' : state === 'active' ? '#534AB7' : '#888780',
                       }}>
                         {label}
                       </p>
-                      <span style={{ fontSize: 8, color: '#888780' }}>
+                      <span style={{ fontSize: 10, color: '#888780' }}>
                         {state === 'done' ? 'Complete' : sub}
                       </span>
                     </div>
@@ -224,7 +224,7 @@ function ProcessingContent() {
             </div>
 
             <div className="text-center mt-6">
-              <Link href="/" style={{ fontSize: 9, color: '#888780' }}>Cancel</Link>
+              <Link href="/" style={{ fontSize: 12, color: '#888780' }}>Cancel</Link>
             </div>
           </>
         )}

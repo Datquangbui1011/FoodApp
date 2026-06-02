@@ -79,8 +79,8 @@ export default function VideoPage() {
 
       {/* Header */}
       <div style={{ padding: '4px 16px 16px' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#2C2C2A', margin: '0 0 4px' }}>Find a Restaurant</h2>
-        <p style={{ fontSize: 10, color: '#888780', margin: 0 }}>Paste a food video link and we'll identify the place</p>
+        <h2 style={{ fontSize: 23, fontWeight: 700, color: '#2C2C2A', margin: '0 0 4px' }}>Find a Restaurant</h2>
+        <p style={{ fontSize: 13, color: '#888780', margin: 0 }}>Paste a food video link and we'll identify the place</p>
       </div>
 
       {/* Input */}
@@ -88,8 +88,8 @@ export default function VideoPage() {
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', borderRadius: 14, padding: '12px 14px', border: '1.5px solid #E8E7E3', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
             {PlatformIcon
-              ? <PlatformIcon size={18} color="#E03030" />
-              : <IconLink size={18} color="#D3D1C7" />}
+              ? <PlatformIcon size={23} color="#E03030" />
+              : <IconLink size={23} color="#D3D1C7" />}
             <input
               type="url" value={url}
               onChange={e => setUrl(e.target.value)}
@@ -102,12 +102,12 @@ export default function VideoPage() {
                 }
               }}
               placeholder="Paste a TikTok, Instagram, or YouTube link…"
-              style={{ flex: 1, outline: 'none', background: 'transparent', fontSize: 11, color: '#2C2C2A', border: 'none', fontFamily: 'inherit' }}
+              style={{ flex: 1, outline: 'none', background: 'transparent', fontSize: 14, color: '#2C2C2A', border: 'none', fontFamily: 'inherit' }}
             />
             {isValid && (
               <button type="submit"
                 style={{ width: 32, height: 32, borderRadius: '50%', background: '#E03030', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                <IconArrowRight size={16} color="white" />
+                <IconArrowRight size={21} color="white" />
               </button>
             )}
           </div>
@@ -116,12 +116,12 @@ export default function VideoPage() {
 
       {/* Platform icons */}
       <div style={{ padding: '0 12px 24px' }}>
-        <p style={{ fontSize: 9, color: '#B0AFA9', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Supported platforms</p>
+        <p style={{ fontSize: 12, color: '#B0AFA9', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Supported platforms</p>
         <div style={{ display: 'flex', gap: 10 }}>
           {PLATFORMS.map(({ icon: Icon, label, color, bg }) => (
             <div key={label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, background: bg, borderRadius: 12, padding: '10px 0' }}>
-              <Icon size={22} color={color} />
-              <span style={{ fontSize: 8, color: '#888780', fontWeight: 500 }}>{label}</span>
+              <Icon size={29} color={color} />
+              <span style={{ fontSize: 10, color: '#888780', fontWeight: 500 }}>{label}</span>
             </div>
           ))}
         </div>
@@ -129,17 +129,17 @@ export default function VideoPage() {
 
       {/* How it works */}
       <div style={{ margin: '0 12px', background: 'white', borderRadius: 16, padding: '14px', border: '1px solid #F0EFEC' }}>
-        <p style={{ fontSize: 10, fontWeight: 700, color: '#2C2C2A', margin: '0 0 12px' }}>How it works</p>
+        <p style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A', margin: '0 0 12px' }}>How it works</p>
         {[
           ['📋', 'Copy a food video link', 'From TikTok, Instagram, YouTube, or Facebook'],
           ['🤖', 'AI identifies the restaurant', 'We analyze the video frames and audio'],
           ['📍', 'See it on the map', 'Get directions, reviews, and more'],
         ].map(([emoji, title, sub]) => (
           <div key={title} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>{emoji}</span>
+            <span style={{ fontSize: 23, lineHeight: 1, flexShrink: 0 }}>{emoji}</span>
             <div>
-              <p style={{ fontSize: 10, fontWeight: 600, color: '#2C2C2A', margin: '0 0 1px' }}>{title}</p>
-              <p style={{ fontSize: 8.5, color: '#888780', margin: 0 }}>{sub}</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#2C2C2A', margin: '0 0 1px' }}>{title}</p>
+              <p style={{ fontSize: 11, color: '#888780', margin: 0 }}>{sub}</p>
             </div>
           </div>
         ))}

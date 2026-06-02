@@ -55,10 +55,10 @@ export default function InstallPrompt() {
     }}>
       <img src="/logo.png" alt="Foody" style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0 }} />
       <div style={{ flex: 1 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: 'white', margin: 0 }}>Add Foody to Home Screen</p>
+        <p style={{ fontSize: 17, fontWeight: 700, color: 'white', margin: 0 }}>Add Foody to Home Screen</p>
         {isIOS
-          ? <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', margin: '2px 0 0' }}>Tap Share → Add to Home Screen</p>
-          : <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', margin: '2px 0 0' }}>Install for the full app experience</p>
+          ? <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', margin: '2px 0 0' }}>Tap Share → Add to Home Screen</p>
+          : <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', margin: '2px 0 0' }}>Install for the full app experience</p>
         }
       </div>
       {!isIOS && (
@@ -70,7 +70,7 @@ export default function InstallPrompt() {
             border: 'none',
             borderRadius: 10,
             padding: '8px 16px',
-            fontSize: 12,
+            fontSize: 16,
             fontWeight: 700,
             cursor: 'pointer',
             flexShrink: 0,
@@ -81,7 +81,7 @@ export default function InstallPrompt() {
       )}
       <button
         onClick={() => setVisible(false)}
-        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 18, cursor: 'pointer', padding: 0, flexShrink: 0 }}
+        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 23, cursor: 'pointer', padding: 0, flexShrink: 0 }}
       >
         ×
       </button>

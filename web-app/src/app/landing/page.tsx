@@ -39,7 +39,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.4 }}
-          style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', margin: '0 0 8px', lineHeight: 1.5, maxWidth: 240 }}
+          style={{ fontSize: 17, color: 'rgba(255,255,255,0.5)', margin: '0 0 8px', lineHeight: 1.5, maxWidth: 240 }}
         >
           Discover restaurants from food videos
         </motion.p>
@@ -51,7 +51,7 @@ export default function LandingPage() {
           style={{ display: 'flex', gap: 6, marginBottom: 32 }}
         >
           {['🍜', '☕', '🍕', '🍣', '🌮'].map(e => (
-            <span key={e} style={{ fontSize: 20 }}>{e}</span>
+            <span key={e} style={{ fontSize: 26 }}>{e}</span>
           ))}
         </motion.div>
 
@@ -62,17 +62,17 @@ export default function LandingPage() {
           style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}
         >
           <Link href="/auth?mode=signup"
-            style={{ display: 'block', width: '100%', padding: '15px 0', borderRadius: 16, background: '#E03030', color: 'white', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 700, boxShadow: '0 8px 28px rgba(224,48,48,0.45)' }}>
+            style={{ display: 'block', width: '100%', padding: '15px 0', borderRadius: 16, background: '#E03030', color: 'white', textAlign: 'center', textDecoration: 'none', fontSize: 20, fontWeight: 700, boxShadow: '0 8px 28px rgba(224,48,48,0.45)' }}>
             Create account
           </Link>
           <Link href="/auth?mode=signin"
-            style={{ display: 'block', width: '100%', padding: '15px 0', borderRadius: 16, background: 'rgba(255,255,255,0.08)', color: 'white', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 600, border: '1.5px solid rgba(255,255,255,0.15)' }}>
+            style={{ display: 'block', width: '100%', padding: '15px 0', borderRadius: 16, background: 'rgba(255,255,255,0.08)', color: 'white', textAlign: 'center', textDecoration: 'none', fontSize: 20, fontWeight: 600, border: '1.5px solid rgba(255,255,255,0.15)' }}>
             Sign in
           </Link>
         </motion.div>
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.18)', padding: '0 0 16px' }}>
+      <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.18)', padding: '0 0 16px' }}>
         By signing up you agree to our Terms &amp; Privacy Policy
       </p>
     </div>

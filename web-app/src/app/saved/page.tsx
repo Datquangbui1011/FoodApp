@@ -86,7 +86,7 @@ export default function Saved() {
       <div style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
         <StatusBar />
         <div className="px-3.5 pb-3">
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: '#2C2C2A' }}>Saved</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#2C2C2A' }}>Saved</h2>
         </div>
       </div>
 
@@ -106,9 +106,9 @@ export default function Saved() {
           </div>
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center pt-20 gap-3">
-            <IconHeart size={32} color="#D3D1C7" />
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#2C2C2A' }}>Nothing saved yet</p>
-            <p style={{ fontSize: 9, color: '#888780', textAlign: 'center', lineHeight: 1.6 }}>
+            <IconHeart size={42} color="#D3D1C7" />
+            <p style={{ fontSize: 16, fontWeight: 600, color: '#2C2C2A' }}>Nothing saved yet</p>
+            <p style={{ fontSize: 12, color: '#888780', textAlign: 'center', lineHeight: 1.6 }}>
               Tap the heart on any restaurant{'\n'}in the bottom sheet to save it here.
             </p>
           </div>
@@ -130,23 +130,23 @@ export default function Saved() {
                     )}
                     {item.rating && (
                       <div style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)', borderRadius: 99, padding: '2px 6px', display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: 7, color: '#F5A623' }}>★</span>
-                        <span style={{ fontSize: 7, color: 'white', fontWeight: 600 }}>{item.rating.toFixed(1)}</span>
+                        <span style={{ fontSize: 9, color: '#F5A623' }}>★</span>
+                        <span style={{ fontSize: 9, color: 'white', fontWeight: 600 }}>{item.rating.toFixed(1)}</span>
                       </div>
                     )}
                   </div>
 
                   {/* Info */}
                   <div style={{ padding: '8px 10px 10px' }}>
-                    <p style={{ fontSize: 9, fontWeight: 600, color: '#2C2C2A', marginBottom: 3, lineHeight: 1.3,
+                    <p style={{ fontSize: 12, fontWeight: 600, color: '#2C2C2A', marginBottom: 3, lineHeight: 1.3,
                       overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                       {item.name}
                     </p>
                     {item.cuisineType ? (
-                      <span style={{ fontSize: 7, color: '#888780' }}>{item.cuisineType}</span>
+                      <span style={{ fontSize: 9, color: '#888780' }}>{item.cuisineType}</span>
                     ) : item.address ? (
-                      <span style={{ fontSize: 7, color: '#888780', display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <IconMapPin size={7} color="#D3D1C7" />{item.address.split(',')[0]}
+                      <span style={{ fontSize: 9, color: '#888780', display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <IconMapPin size={9} color="#D3D1C7" />{item.address.split(',')[0]}
                       </span>
                     ) : null}
                   </div>

@@ -51,8 +51,8 @@ export default function UpdatePrompt() {
       boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
     }}>
       <div style={{ flex: 1 }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: 'white', margin: 0 }}>Update available</p>
-        <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', margin: '2px 0 0' }}>A new version of Foody is ready</p>
+        <p style={{ fontSize: 17, fontWeight: 700, color: 'white', margin: 0 }}>Update available</p>
+        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', margin: '2px 0 0' }}>A new version of Foody is ready</p>
       </div>
       <button
         onClick={handleUpdate}
@@ -62,7 +62,7 @@ export default function UpdatePrompt() {
           border: 'none',
           borderRadius: 10,
           padding: '8px 16px',
-          fontSize: 12,
+          fontSize: 16,
           fontWeight: 700,
           cursor: 'pointer',
           flexShrink: 0,
@@ -72,7 +72,7 @@ export default function UpdatePrompt() {
       </button>
       <button
         onClick={() => setWaiting(null)}
-        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 18, cursor: 'pointer', padding: 0 }}
+        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 23, cursor: 'pointer', padding: 0 }}
       >
         ×
       </button>

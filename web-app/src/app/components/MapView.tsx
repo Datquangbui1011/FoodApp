@@ -44,8 +44,8 @@ export default function MapView({ lat, lng, name, address }: Props) {
           onCloseClick={() => setShowInfo(false)}
         >
           <div style={{ padding: '2px 4px' }}>
-            <p style={{ fontSize: 11, fontWeight: 600, margin: '0 0 2px' }}>{name}</p>
-            <p style={{ fontSize: 9, color: '#5F5E5A', margin: 0 }}>
+            <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 2px' }}>{name}</p>
+            <p style={{ fontSize: 12, color: '#5F5E5A', margin: 0 }}>
               {address.split(',').slice(0, 3).join(',')}
             </p>
           </div>

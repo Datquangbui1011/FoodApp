@@ -30,13 +30,13 @@ export default function HomeClient() {
       <form onSubmit={handleSubmit}>
         <div className="flex items-center gap-1.5 bg-white rounded-lg px-2.5 py-2">
           {platform === 'tiktok' ? (
-            <IconBrandTiktok size={13} color="#E03030" />
+            <IconBrandTiktok size={17} color="#E03030" />
           ) : platform === 'instagram' ? (
-            <IconBrandInstagram size={13} color="#E03030" />
+            <IconBrandInstagram size={17} color="#E03030" />
           ) : platform === 'facebook' ? (
-            <IconBrandFacebook size={13} color="#E03030" />
+            <IconBrandFacebook size={17} color="#E03030" />
           ) : (
-            <IconLink size={13} color="#888780" />
+            <IconLink size={17} color="#888780" />
           )}
           <input
             type="url"
@@ -44,13 +44,13 @@ export default function HomeClient() {
             onChange={(e) => setUrl(e.target.value)}
             placeholder="Paste TikTok / Instagram / YouTube link…"
             className="flex-1 outline-none"
-            style={{ fontSize: 9, color: '#2C2C2A', background: 'transparent' }}
+            style={{ fontSize: 12, color: '#2C2C2A', background: 'transparent' }}
           />
           <button
             type="submit"
             disabled={!isValid}
             style={{
-              fontSize: 8,
+              fontSize: 10,
               fontWeight: 600,
               color: isValid ? '#E03030' : '#D3D1C7',
               background: 'none',
@@ -75,8 +75,8 @@ export default function HomeClient() {
             className="flex-1 flex flex-col items-center py-1.5 rounded-lg border"
             style={{ borderColor: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.15)' }}
           >
-            <Icon size={15} color="white" />
-            <span style={{ fontSize: 8, color: 'white', marginTop: 2 }}>{label}</span>
+            <Icon size={20} color="white" />
+            <span style={{ fontSize: 10, color: 'white', marginTop: 2 }}>{label}</span>
           </div>
         ))}
       </div>

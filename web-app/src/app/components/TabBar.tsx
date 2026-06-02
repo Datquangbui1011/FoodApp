@@ -25,8 +25,8 @@ export default function TabBar() {
         const active = pathname === href;
         return (
           <Link key={href} href={href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, textDecoration: 'none' }}>
-            <Icon size={22} stroke={1.8} color={active ? '#E24B4A' : '#D3D1C7'} />
-            <span style={{ fontSize: 9, fontWeight: 500, color: active ? '#E24B4A' : '#888780' }}>
+            <Icon size={29} stroke={1.8} color={active ? '#E24B4A' : '#D3D1C7'} />
+            <span style={{ fontSize: 12, fontWeight: 500, color: active ? '#E24B4A' : '#888780' }}>
               {label}
             </span>
           </Link>
