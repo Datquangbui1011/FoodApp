@@ -1,8 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
+
+import PhoneMockup from './components/PhoneMockup';
+import InstallButton from './components/InstallButton';
 import InstallPrompt from './components/InstallPrompt';
 import ServiceWorkerRegistrar from './components/ServiceWorkerRegistrar';
+
+
 
 const FEATURES = [
   {
@@ -48,46 +53,52 @@ export default function Page() {
         <div style={{ position: 'fixed', bottom: 80, left: -80, width: 320, height: 320, borderRadius: '50%', background: 'radial-gradient(circle, rgba(245,166,35,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
         {/* Hero */}
-        <section style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', padding: '60px 24px', textAlign: 'center' }}>
+        <section style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', minHeight: '100dvh', padding: '60px 32px', gap: 56 }}>
 
+          {/* Text side */}
+          <div style={{ flex: '1 1 300px', maxWidth: 480, textAlign: 'left' }}>
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 18 }}
+              style={{ width: 72, height: 72, borderRadius: 18, overflow: 'hidden', marginBottom: 24, boxShadow: '0 12px 40px rgba(224,48,48,0.4)' }}
+            >
+              <img src="/logo.png" alt="Foody" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </motion.div>
+
+            <motion.h1 {...fadeUp(0.1)} style={{ fontSize: 'clamp(48px, 10vw, 88px)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 16, background: 'linear-gradient(135deg, #fff 40%, rgba(255,255,255,0.5))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+              Foody
+            </motion.h1>
+
+            <motion.p {...fadeUp(0.2)} style={{ fontSize: 'clamp(15px, 3vw, 20px)', color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: 12 }}>
+              Discover restaurants from food videos.
+            </motion.p>
+
+            <motion.p {...fadeUp(0.25)} style={{ fontSize: 'clamp(13px, 2.5vw, 16px)', color: 'rgba(255,255,255,0.35)', lineHeight: 1.6, marginBottom: 40 }}>
+              Watch a food video, find the restaurant, get there — all in seconds.
+            </motion.p>
+
+            <motion.div {...fadeUp(0.35)} style={{ display: 'flex', gap: 8, marginBottom: 40, flexWrap: 'wrap' }}>
+              {['🍜', '☕', '🍕', '🍣', '🌮', '🥗'].map(e => (
+                <span key={e} style={{ fontSize: 'clamp(22px, 5vw, 30px)' }}>{e}</span>
+              ))}
+            </motion.div>
+
+            <motion.div {...fadeUp(0.4)}>
+              <InstallButton />
+            </motion.div>
+          </div>
+
+          {/* Phones */}
           <motion.div
-            initial={{ scale: 0.5, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 18 }}
-            style={{ width: 120, height: 120, borderRadius: 30, overflow: 'hidden', marginBottom: 28, boxShadow: '0 20px 60px rgba(224,48,48,0.4)' }}
+            initial={{ opacity: 0, y: 32, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 160, damping: 20 }}
+            style={{ display: 'flex', gap: 24, alignItems: 'center', flexShrink: 0 }}
           >
-            <img src="/logo.png" alt="Foody" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <PhoneMockup src="/phone.png" />
           </motion.div>
 
-          <motion.h1 {...fadeUp(0.1)} style={{ fontSize: 'clamp(52px, 12vw, 96px)', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 16, background: 'linear-gradient(135deg, #fff 40%, rgba(255,255,255,0.5))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Foody
-          </motion.h1>
-
-          <motion.p {...fadeUp(0.2)} style={{ fontSize: 'clamp(15px, 3vw, 20px)', color: 'rgba(255,255,255,0.55)', maxWidth: 480, lineHeight: 1.6, marginBottom: 12 }}>
-            Discover restaurants from food videos.
-          </motion.p>
-
-          <motion.p {...fadeUp(0.25)} style={{ fontSize: 'clamp(13px, 2.5vw, 16px)', color: 'rgba(255,255,255,0.35)', maxWidth: 380, lineHeight: 1.6, marginBottom: 48 }}>
-            Watch a food video, find the restaurant, get there — all in seconds.
-          </motion.p>
-
-          <motion.div {...fadeUp(0.35)} style={{ display: 'flex', gap: 8, marginBottom: 56 }}>
-            {['🍜', '☕', '🍕', '🍣', '🌮', '🥗'].map(e => (
-              <span key={e} style={{ fontSize: 'clamp(22px, 5vw, 32px)' }}>{e}</span>
-            ))}
-          </motion.div>
-
-          <motion.a
-            {...fadeUp(0.4)}
-            href="https://foody-pied.vercel.app"
-            target="_blank"
-            rel="noopener noreferrer"
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            style={{ display: 'inline-block', background: '#E03030', color: 'white', textDecoration: 'none', fontSize: 16, fontWeight: 700, padding: '16px 40px', borderRadius: 20, boxShadow: '0 8px 32px rgba(224,48,48,0.45)', letterSpacing: '-0.01em' }}
-          >
-            Open App
-          </motion.a>
         </section>
 
         {/* Features */}
@@ -140,16 +151,7 @@ export default function Page() {
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', marginBottom: 32, lineHeight: 1.6 }}>
               Install Foody and turn every food video into a real dining experience.
             </p>
-            <motion.a
-              href="https://foody-pied.vercel.app"
-              target="_blank"
-              rel="noopener noreferrer"
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
-              style={{ display: 'inline-block', background: '#E03030', color: 'white', textDecoration: 'none', fontSize: 15, fontWeight: 700, padding: '14px 36px', borderRadius: 16, boxShadow: '0 8px 32px rgba(224,48,48,0.4)' }}
-            >
-              Get Started
-            </motion.a>
+            <InstallButton />
           </motion.div>
         </section>
 
