@@ -20,7 +20,7 @@ export default function TabBar() {
   const pathname = usePathname();
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', paddingTop: 8, paddingBottom: 'calc(14px + env(safe-area-inset-bottom))', borderTop: '1px solid rgba(0,0,0,0.06)', background: 'white', flexShrink: 0 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', paddingTop: 6, paddingBottom: 'calc(8px + env(safe-area-inset-bottom))', borderTop: '1px solid rgba(0,0,0,0.06)', background: 'white', flexShrink: 0 }}>
       {tabs.map(({ label, href, icon: Icon }) => {
         const active = pathname === href;
         return (
