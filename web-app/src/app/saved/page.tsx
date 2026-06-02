@@ -91,7 +91,7 @@ export default function Saved() {
       </div>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto p-3">
+      <div className="flex-1 overflow-y-auto p-3" style={{ paddingBottom: 'calc(12px + 52px + env(safe-area-inset-bottom))' }}>
         {loading ? (
           <div className="grid grid-cols-2 gap-2.5">
             {[1, 2, 3, 4].map(i => (

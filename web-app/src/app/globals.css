@@ -44,6 +44,10 @@ html {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  /* Dark brand base (matches the PWA splash). On iOS standalone the body
+     paints the home-indicator safe area that page content can't reach — keeping
+     this dark means that strip is never a white gap on any screen. */
+  background: #1A0808;
 }
 
 /* position:fixed pinned to every edge fills the screen in an installed iOS
@@ -66,11 +70,9 @@ body {
 
 body {
   font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
-  /* Default canvas for the light inner pages, which use a transparent root.
-     Dark full-screen pages (e.g. landing) override this per-route so the
-     iOS home-indicator strip matches their background instead of showing
-     white. */
-  background: white;
+  /* Same dark base as <html>. The light inner pages get their white canvas
+     from the content wrapper in layout.tsx, not from the body. */
+  background: #1A0808;
   color: var(--gray-800);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
