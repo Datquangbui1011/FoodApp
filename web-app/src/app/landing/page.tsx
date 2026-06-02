@@ -2,27 +2,26 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import StatusBar from '../components/StatusBar';
 import InstallPrompt from '../components/InstallPrompt';
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1" style={{ background: '#1A0808', position: 'relative', overflow: 'hidden' }}>
-      <StatusBar dark />
-      <InstallPrompt />
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: '#1A0808', position: 'relative', overflow: 'hidden' }}>
 
       {/* Background glows */}
       <div style={{ position: 'absolute', top: -80, right: -80, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(224,48,48,0.35) 0%, transparent 70%)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', bottom: 120, left: -60, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(245,166,35,0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
+      <InstallPrompt />
+
       {/* Hero */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 32px', textAlign: 'center' }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 32px', textAlign: 'center' }}>
 
         <motion.div
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 16 }}
-          style={{ width: 110, height: 110, borderRadius: 28, overflow: 'hidden', marginBottom: 20, boxShadow: '0 16px 40px rgba(0,0,0,0.5)' }}
+          style={{ width: 96, height: 96, borderRadius: 24, overflow: 'hidden', marginBottom: 16, boxShadow: '0 16px 40px rgba(0,0,0,0.5)' }}
         >
           <img src="/logo.png" alt="Foody" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </motion.div>
@@ -31,7 +30,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, type: 'spring', stiffness: 200, damping: 18 }}
-          style={{ fontSize: 48, fontWeight: 900, color: 'white', margin: '0 0 10px', letterSpacing: '-0.03em', lineHeight: 1 }}
+          style={{ fontSize: 44, fontWeight: 900, color: 'white', margin: '0 0 8px', letterSpacing: '-0.03em', lineHeight: 1 }}
         >
           Foody
         </motion.h1>
@@ -49,7 +48,7 @@ export default function LandingPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          style={{ display: 'flex', gap: 6, marginBottom: 52 }}
+          style={{ display: 'flex', gap: 6, marginBottom: 32 }}
         >
           {['🍜', '☕', '🍕', '🍣', '🌮'].map(e => (
             <span key={e} style={{ fontSize: 20 }}>{e}</span>
@@ -73,7 +72,7 @@ export default function LandingPage() {
         </motion.div>
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.18)', paddingBottom: 20 }}>
+      <p style={{ textAlign: 'center', fontSize: 10, color: 'rgba(255,255,255,0.18)', padding: '0 0 16px' }}>
         By signing up you agree to our Terms &amp; Privacy Policy
       </p>
     </div>
