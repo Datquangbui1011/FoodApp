@@ -59,7 +59,7 @@ body {
 
 body {
   font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
-  background: #F5EDED;
+  background: white;
   color: var(--gray-800);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
