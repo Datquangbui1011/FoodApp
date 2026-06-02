@@ -68,10 +68,6 @@ export default function LandingPage() {
             style={{ display: 'block', width: '100%', padding: '15px 0', borderRadius: 16, background: 'rgba(255,255,255,0.08)', color: 'white', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 600, border: '1.5px solid rgba(255,255,255,0.15)' }}>
             Sign in
           </Link>
-          <Link href="/"
-            style={{ display: 'block', padding: '8px 0', color: 'rgba(255,255,255,0.38)', textAlign: 'center', textDecoration: 'none', fontSize: 12 }}>
-            Continue as guest
-          </Link>
         </motion.div>
       </div>
 
