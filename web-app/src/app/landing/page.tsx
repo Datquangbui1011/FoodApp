@@ -1,10 +1,21 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import InstallPrompt from '../components/InstallPrompt';
 
 export default function LandingPage() {
+  // On iOS standalone, the body background paints the home-indicator safe area
+  // that page content doesn't reach. Match it to this dark screen so no white
+  // strip shows at the bottom; restore the light default on navigation away.
+  useEffect(() => {
+    const { body } = document;
+    const prev = body.style.background;
+    body.style.background = '#1A0808';
+    return () => { body.style.background = prev; };
+  }, []);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: '#1A0808', position: 'relative', overflow: 'hidden', paddingTop: 'env(safe-area-inset-top)', boxSizing: 'border-box' }}>
 

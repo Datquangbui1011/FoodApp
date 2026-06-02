@@ -46,15 +46,19 @@ html {
   overflow: hidden;
 }
 
-/* position:fixed + inset:0 pins body to the visual viewport — the most
-   reliable way to fill the screen in an installed iOS PWA, where 100vh/100dvh
-   are unreliable. */
+/* position:fixed pinned to every edge fills the screen in an installed iOS
+   PWA, where 100vh/100dvh are unreliable. height/width are set explicitly
+   (in addition to top/bottom/left/right) because some iOS versions size a
+   fixed element to the safe-area viewport, leaving the home-indicator strip
+   at the bottom uncovered. */
 body {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   left: 0;
+  height: 100%;
+  width: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
@@ -62,6 +66,10 @@ body {
 
 body {
   font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
+  /* Default canvas for the light inner pages, which use a transparent root.
+     Dark full-screen pages (e.g. landing) override this per-route so the
+     iOS home-indicator strip matches their background instead of showing
+     white. */
   background: white;
   color: var(--gray-800);
   -webkit-font-smoothing: antialiased;
