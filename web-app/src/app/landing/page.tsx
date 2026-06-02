@@ -6,7 +6,7 @@ import InstallPrompt from '../components/InstallPrompt';
 
 export default function LandingPage() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '100%', background: '#1A0808', position: 'relative', overflow: 'hidden', paddingTop: 'env(safe-area-inset-top)', boxSizing: 'border-box' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, height: '120%', background: '#1A0808', position: 'relative', overflow: 'hidden', paddingTop: 'env(safe-area-inset-top)', boxSizing: 'border-box' }}>
 
       {/* Background glows */}
       <div style={{ position: 'absolute', top: -80, right: -80, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(224,48,48,0.35) 0%, transparent 70%)', pointerEvents: 'none' }} />
