@@ -3,6 +3,7 @@ import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import Providers from "./components/Providers";
 import PageTransition from "./components/PageTransition";
+import UpdatePrompt from "./components/UpdatePrompt";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -45,6 +46,7 @@ export default function RootLayout({
         <Providers>
           <div style={{ flex: 1, width: '100%', height: '100%', background: 'white', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
             <PageTransition>{children}</PageTransition>
+            <UpdatePrompt />
           </div>
         </Providers>
       </body>

@@ -1,8 +1,8 @@
-const CACHE = 'foody-v1';
+const CACHE = 'foody-v2';
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/landing', '/logo.png', '/manifest.json'])));
-  self.skipWaiting();
+  // Don't skipWaiting — wait for user to approve update
 });
 
 self.addEventListener('activate', e => {
@@ -17,4 +17,8 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
+});
+
+self.addEventListener('message', e => {
+  if (e.data === 'SKIP_WAITING') self.skipWaiting();
 });
