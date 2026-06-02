@@ -42,9 +42,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${dmSans.variable}`} style={{ height: '100%' }}>
-      <body style={{ margin: 0, padding: 0, height: '100dvh', width: '100vw', overflow: 'hidden', background: '#F5EDED', display: 'flex', flexDirection: 'column' }}>
+      <body style={{ margin: 0, padding: 0, height: '100dvh', width: '100vw', overflow: 'hidden', background: 'white', display: 'flex', flexDirection: 'column', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)', boxSizing: 'border-box' }}>
         <Providers>
-          <div style={{ flex: 1, width: '100%', height: '100%', background: 'white', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative', paddingTop: 'env(safe-area-inset-top)' }}>
+          <div style={{ flex: 1, width: '100%', minHeight: 0, background: 'white', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
             <PageTransition>{children}</PageTransition>
             <UpdatePrompt />
           </div>
