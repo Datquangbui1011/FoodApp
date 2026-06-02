@@ -6,7 +6,7 @@ import InstallPrompt from '../components/InstallPrompt';
 
 export default function LandingPage() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: '#1A0808', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, background: '#1A0808', position: 'relative', overflow: 'hidden', paddingTop: 'env(safe-area-inset-top)', boxSizing: 'border-box' }}>
 
       {/* Background glows */}
       <div style={{ position: 'absolute', top: -80, right: -80, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(224,48,48,0.35) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -72,7 +72,7 @@ export default function LandingPage() {
         </motion.div>
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.18)', padding: '0 0 16px' }}>
+      <p style={{ textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.18)', padding: '0 0 calc(16px + env(safe-area-inset-bottom))' }}>
         By signing up you agree to our Terms &amp; Privacy Policy
       </p>
     </div>

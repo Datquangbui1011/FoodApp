@@ -509,7 +509,7 @@ export default function HomeMapClient() {
       </div>
 
       {/* Floating controls */}
-      <div className="absolute top-3 left-3 right-3 z-10">
+      <div className="absolute left-3 right-3 z-10" style={{ top: 'calc(0.75rem + env(safe-area-inset-top))' }}>
         <form onSubmit={handleSubmit}>
           <div className="flex items-center gap-2 rounded-xl px-3 py-2.5"
             style={{ background: 'white', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.06)' }}>
