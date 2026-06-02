@@ -1,3 +1,0 @@
-module.exports=[27572,a=>{"use strict";var b=a.i(7997);a.s(["default",0,function({children:a}){return(0,b.jsx)("html",{lang:"en",children:(0,b.jsx)("body",{children:a})})},"metadata",0,{title:"Foody — Discover restaurants from food videos",description:"Turn food videos into real restaurant discoveries. Find places near you, save favourites, and explore the city through what you watch.",manifest:"/manifest.json",appleWebApp:{capable:!0,statusBarStyle:"black-translucent",title:"Foody"},icons:{icon:"/logo.png",apple:"/logo.png"}},"viewport",0,{width:"device-width",initialScale:1,themeColor:"#E03030"}])},50645,a=>{a.n(a.i(27572))}];
-
-//# sourceMappingURL=src_app_layout_tsx_0fhx__n._.js.map
