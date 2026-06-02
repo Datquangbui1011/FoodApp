@@ -787,9 +787,9 @@ export default function HomeMapClient() {
                       {/* Photo — full left column */}
                       <div style={{ width: 90, flexShrink: 0, position: 'relative', background: '#F0EFEC', minHeight: 88 }}>
                         {r.photoUrl
-                          ? <img src={r.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'absolute', inset: 0 }}
+                          ? <img src={r.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
                               onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                          : <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🍽️</div>}
+                          : <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🍽️</div>}
                         {/* Number badge */}
                         <div style={{ position: 'absolute', top: 6, left: 6, width: 20, height: 20, borderRadius: '50%', background: active ? '#E24B4A' : 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <span style={{ fontSize: 12, fontWeight: 700, color: 'white' }}>{i + 1}</span>
@@ -1080,9 +1080,9 @@ export default function HomeMapClient() {
                               <Icon size={29} color="rgba(255,255,255,0.25)" />
                             </div>}
                         {/* Gradient overlay */}
-                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%)' }} />
+                        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%)' }} />
                         {/* Play button */}
-                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <IconPlayerPlay size={14} color="white" fill="white" />
                           </div>

@@ -44,7 +44,7 @@ export default function RootLayout({
     <html lang="en" className={`${dmSans.variable}`} style={{ height: '100%', background: '#1A0808' }}>
       <body style={{ margin: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
         <Providers>
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <PageTransition>{children}</PageTransition>
             <UpdatePrompt />
           </div>
