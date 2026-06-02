@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import StatusBar from '../components/StatusBar';
+import InstallPrompt from '../components/InstallPrompt';
 
 export default function LandingPage() {
   return (
     <div className="flex flex-col flex-1" style={{ background: '#1A0808', position: 'relative', overflow: 'hidden' }}>
       <StatusBar dark />
+      <InstallPrompt />
 
       {/* Background glows */}
       <div style={{ position: 'absolute', top: -80, right: -80, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(224,48,48,0.35) 0%, transparent 70%)', pointerEvents: 'none' }} />
