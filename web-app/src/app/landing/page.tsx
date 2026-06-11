@@ -94,7 +94,7 @@ export default function LandingPage() {
         </motion.div>
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: 12.5, color: 'rgba(251,247,242,0.28)', lineHeight: 1.5, position: 'relative', zIndex: 1, padding: '0 32px calc(18px + env(safe-area-inset-bottom))' }}>
+      <p style={{ textAlign: 'center', fontSize: 12.5, color: 'rgba(251,247,242,0.28)', lineHeight: 1.5, position: 'relative', zIndex: 1, padding: '0 32px 18px' }}>
         By continuing you agree to our{' '}
         <Link href="/legal/terms" style={{ color: 'rgba(251,247,242,0.5)', textDecoration: 'underline', textUnderlineOffset: 2 }}>Terms</Link>
         {' '}&amp;{' '}

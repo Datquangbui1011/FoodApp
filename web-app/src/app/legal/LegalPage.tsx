@@ -29,7 +29,7 @@ export default function LegalPage({
         <p style={{ fontSize: 12, color: 'var(--ink-mute)', margin: '8px 0 0' }}>Last updated {updated}</p>
       </header>
 
-      <main style={{ flex: 1, overflowY: 'auto', padding: '20px 18px calc(40px + env(safe-area-inset-bottom))' }}>
+      <main style={{ flex: 1, overflowY: 'auto', padding: '20px 18px 40px' }}>
         <div style={{ maxWidth: '65ch', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 22 }}>
           {sections.map(s => (
             <section key={s.heading}>

@@ -27,8 +27,10 @@ export default function TabBar() {
   // home-indicator safe area. Hidden on routes that shouldn't show it.
   if (HIDDEN_ON.some(p => pathname.startsWith(p))) return null;
 
+  // Edge-to-edge by request: no safe-area reservation — the bar hugs the
+  // physical bottom and the iOS home indicator floats over it.
   return (
-    <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start', paddingTop: 9, paddingBottom: 'calc(9px + env(safe-area-inset-bottom))', borderTop: '1px solid var(--cream-200)', background: 'var(--cream)', boxShadow: '0 -2px 18px rgba(60,22,14,0.06)' }}>
+    <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start', paddingTop: 9, paddingBottom: 9, borderTop: '1px solid var(--cream-200)', background: 'var(--cream)', boxShadow: '0 -2px 18px rgba(60,22,14,0.06)' }}>
       {tabs.map(({ label, href, icon: Icon }) => {
         const active = pathname === href;
         return (

@@ -73,7 +73,7 @@ export default function Explore() {
       </div>
 
       {/* Feed */}
-      <main className="flex-1 overflow-y-auto" style={{ padding: '0 14px', paddingBottom: 'calc(12px + 64px + env(safe-area-inset-bottom))' }}>
+      <main className="flex-1 overflow-y-auto" style={{ padding: '0 14px', paddingBottom: 'calc(12px + 64px)' }}>
         {visible.length === 0 ? (
           <div className="flex items-center justify-center" style={{ paddingTop: 60 }}>
             <p style={{ fontSize: 13.5, color: 'var(--ink-mute)' }}>No restaurants in this category yet.</p>

@@ -96,7 +96,7 @@ export default function Saved() {
       </header>
 
       {/* List */}
-      <main className="flex-1 overflow-y-auto" style={{ padding: '4px 14px', paddingBottom: 'calc(16px + 64px + env(safe-area-inset-bottom))' }}>
+      <main className="flex-1 overflow-y-auto" style={{ padding: '4px 14px', paddingBottom: 'calc(16px + 64px)' }}>
         {loading ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map(i => (
