@@ -81,7 +81,7 @@ export default function Saved() {
   }
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1" style={{ background: 'var(--cream)' }}>
 
       {/* Header */}
       <header style={{ flexShrink: 0 }}>

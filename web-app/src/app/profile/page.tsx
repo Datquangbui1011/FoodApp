@@ -40,7 +40,7 @@ export default async function Profile() {
   ];
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1" style={{ background: 'var(--cream)' }}>
 
       {/* Header — warm tomato block with soft top glow */}
       <header style={{ background: 'radial-gradient(120% 120% at 50% -20%, #F2603F 0%, var(--tomato) 60%)' }}>

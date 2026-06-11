@@ -49,17 +49,14 @@ const CATEGORIES: Category[] = [
 
 
 // ─── Sheet snap ───────────────────────────────────────────────────────────────
-const SHEET_HEIGHT   = 540;
-const PEEK_HEIGHT    = 120;
-const PEEK_TRANSLATE = SHEET_HEIGHT - PEEK_HEIGHT; // 420
+// The sheet's expanded height is measured at runtime so its top docks just under
+// the category chips and its bottom sits just above the tab bar (see measureSheet).
+const SHEET_HEIGHT = 540;   // fallback before first measure
+const PEEK_HEIGHT  = 120;   // how much of the sheet shows when collapsed
+const GAP_ABOVE_TABBAR = 8; // breathing room between the sheet and the menubar
+const GAP_BELOW_CHIPS  = 12; // breathing room between the chips and the expanded sheet
 
 type SheetSnap = 'hidden' | 'peek' | 'expanded';
-
-function snapToY(snap: SheetSnap): number {
-  if (snap === 'hidden') return SHEET_HEIGHT;
-  if (snap === 'peek')   return PEEK_TRANSLATE;
-  return 0;
-}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function detectPlatform(url: string) {
@@ -112,11 +109,44 @@ export default function HomeMapClient() {
   const discoverAllRef = useRef<NearbyRestaurant[]>([]);
 
   const sheetRef       = useRef<HTMLDivElement>(null);
+  const containerRef   = useRef<HTMLDivElement>(null);
+  const chipsRef       = useRef<HTMLDivElement>(null);
   const toastTimer     = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const dragging       = useRef(false);
   const startClientY   = useRef(0);
   const startTranslateY = useRef(0);
   const sheetY         = useSpring(SHEET_HEIGHT, { stiffness: 400, damping: 40, mass: 0.8 });
+
+  // Measured sheet geometry: expanded height + how far above the tab bar it docks.
+  const [sheetH, setSheetH]       = useState(SHEET_HEIGHT);
+  const [bottomGap, setBottomGap] = useState(72);
+
+  // translateY for each snap, in terms of the measured sheet height.
+  // hidden slides past the dock gap too, so no sliver peeks above the tab bar.
+  const snapY = useCallback((s: SheetSnap): number => {
+    if (s === 'hidden') return sheetH + bottomGap;
+    if (s === 'peek')   return Math.max(0, sheetH - PEEK_HEIGHT);
+    return 0;
+  }, [sheetH, bottomGap]);
+
+  // Size the sheet to the gap between the category chips and the tab bar.
+  useEffect(() => {
+    function measureSheet() {
+      const c = containerRef.current?.getBoundingClientRect();
+      const chips = chipsRef.current?.getBoundingClientRect();
+      if (!c) return;
+      const navH = document.querySelector('nav')?.getBoundingClientRect().height ?? 64;
+      const dock = navH + GAP_ABOVE_TABBAR;
+      const topGap = chips ? (chips.bottom - c.top + GAP_BELOW_CHIPS) : 150;
+      setBottomGap(dock);
+      setSheetH(Math.max(240, Math.round(c.height - topGap - dock)));
+    }
+    measureSheet();
+    const ro = new ResizeObserver(measureSheet);
+    if (containerRef.current) ro.observe(containerRef.current);
+    window.addEventListener('resize', measureSheet);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measureSheet); };
+  }, []);
 
 
   // Discover pins — numbered, shown on map when no result pins
@@ -198,8 +228,8 @@ export default function HomeMapClient() {
     init();
   }, []);
 
-  // Animate sheet with spring
-  useEffect(() => { sheetY.set(snapToY(snap)); }, [snap, sheetY]);
+  // Animate sheet with spring — also re-snaps when the measured geometry changes
+  useEffect(() => { sheetY.set(snapY(snap)); }, [snap, sheetY, snapY]);
 
   // Fetch place details when pin selected
   useEffect(() => {
@@ -308,9 +338,9 @@ export default function HomeMapClient() {
   function onHandlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
     dragging.current      = true;
     startClientY.current  = e.clientY;
-    startTranslateY.current = snapToY(snap);
+    startTranslateY.current = snapY(snap);
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    sheetY.jump(snapToY(snap));
+    sheetY.jump(snapY(snap));
   }
   function onHandlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
     if (!dragging.current) return;
@@ -324,8 +354,8 @@ export default function HomeMapClient() {
     // In discover mode (no selected pin) the sheet never hides — minimum is peek
     const hasContent = !!selectedId || discoverList.length > 0 || discoverLoading;
     const snaps: [SheetSnap, number][] = hasContent
-      ? [['expanded', 0], ['peek', PEEK_TRANSLATE]]
-      : [['expanded', 0], ['peek', PEEK_TRANSLATE], ['hidden', SHEET_HEIGHT]];
+      ? [['expanded', snapY('expanded')], ['peek', snapY('peek')]]
+      : [['expanded', snapY('expanded')], ['peek', snapY('peek')], ['hidden', snapY('hidden')]];
     const [best] = snaps.reduce((a, b) => Math.abs(b[1] - relY) < Math.abs(a[1] - relY) ? b : a);
     if (best === 'hidden') setSelectedId(null);
     setSnap(best);
@@ -496,7 +526,7 @@ export default function HomeMapClient() {
 
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="relative flex-1" style={{ overflow: 'hidden' }}>
+    <div ref={containerRef} className="relative flex-1" style={{ overflow: 'hidden' }}>
       <div className="absolute inset-0">
         <HomeMap
           savedPins={savedPins}
@@ -533,7 +563,7 @@ export default function HomeMapClient() {
         </form>
 
         {/* Category chips */}
-        <div className="flex gap-1.5 mt-2 overflow-x-auto" style={{ scrollbarWidth: 'none', paddingBottom: 2 }}>
+        <div ref={chipsRef} className="flex gap-1.5 mt-2 overflow-x-auto" style={{ scrollbarWidth: 'none', paddingBottom: 2 }}>
           {CATEGORIES.map(cat => {
             const active = activeCategory === cat.label;
             return (
@@ -607,7 +637,7 @@ export default function HomeMapClient() {
       {/* ── Multi-result card strip ── */}
       {resultPins.length > 1 && snap !== 'expanded' && (
         <div style={{
-          position: 'absolute', bottom: snap === 'peek' ? PEEK_HEIGHT + 8 : 60, left: 0, right: 0,
+          position: 'absolute', bottom: bottomGap + (snap === 'peek' ? PEEK_HEIGHT + 8 : 8), left: 0, right: 0,
           zIndex: 19, padding: '0 12px', transition: 'bottom 0.32s cubic-bezier(0.32,0.72,0,1)',
         }}>
           {/* Header row */}
@@ -670,8 +700,8 @@ export default function HomeMapClient() {
       )}
 
       {/* ── Bottom sheet ─────────────────────────────────────────────────── */}
-      <motion.div ref={sheetRef} className="absolute bottom-0 left-0 right-0 z-20"
-        style={{ height: SHEET_HEIGHT, y: sheetY, background: 'var(--cream)', borderRadius: '22px 22px 0 0', boxShadow: '0 -8px 32px rgba(60,22,14,0.16)', display: 'flex', flexDirection: 'column' }}>
+      <motion.div ref={sheetRef} className="absolute left-0 right-0 z-20"
+        style={{ height: sheetH, bottom: bottomGap, y: sheetY, background: 'var(--cream)', borderRadius: '22px 22px 0 0', boxShadow: '0 -8px 32px rgba(60,22,14,0.16)', display: 'flex', flexDirection: 'column' }}>
 
         {/* Drag handle + peek header */}
         <div style={{ touchAction: 'none', cursor: 'grab', flexShrink: 0 }}

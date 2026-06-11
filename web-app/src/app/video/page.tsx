@@ -74,7 +74,7 @@ export default function VideoPage() {
   }
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1" style={{ background: 'var(--cream)' }}>
       <StatusBar />
 
       {/* Header */}

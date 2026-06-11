@@ -24,7 +24,7 @@ export default function Explore() {
   const visible = feedItems.filter(item => matchesCategory(item, activeCategory));
 
   return (
-    <div className="flex flex-col flex-1">
+    <div className="flex flex-col flex-1" style={{ background: 'var(--cream)' }}>
       <StatusBar />
 
       {/* Header */}

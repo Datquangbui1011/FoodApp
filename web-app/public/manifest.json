@@ -4,8 +4,8 @@
   "description": "Discover restaurants from food videos",
   "start_url": "/landing",
   "display": "standalone",
-  "background_color": "#1A0808",
-  "theme_color": "#E03030",
+  "background_color": "#191010",
+  "theme_color": "#191010",
   "orientation": "portrait",
   "icons": [
     {
