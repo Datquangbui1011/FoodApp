@@ -139,82 +139,80 @@ function ProcessingContent() {
     <div className="flex flex-col flex-1">
 
       {/* Header */}
-      <div style={{ background: '#E03030' }}>
+      <header style={{ background: 'radial-gradient(120% 120% at 50% -20%, #F2603F 0%, var(--tomato) 60%)' }}>
         <StatusBar dark />
-        <div className="flex items-center gap-2 px-3.5 pb-3">
-          <Link href="/"><IconArrowLeft size={21} color="#FFB9B8" /></Link>
-          <span style={{ color: 'white', fontSize: 17, fontWeight: 500, flex: 1 }}>Analyzing video</span>
+        <div className="flex items-center gap-3 px-4 pb-3.5">
+          <Link href="/" aria-label="Back"><IconArrowLeft size={22} color="#FFF8F4" /></Link>
+          <span style={{ color: '#FFF8F4', fontSize: 16, fontWeight: 600, flex: 1 }}>Analyzing video</span>
         </div>
-      </div>
+      </header>
 
-      <div className="flex-1 px-3.5 py-3.5">
+      <div className="flex-1" style={{ padding: '16px 16px' }}>
         {/* URL pill */}
-        <div className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 mb-4"
-          style={{ background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)' }}>
+        <div className="flex items-center gap-2 mb-5"
+          style={{ background: 'var(--cream)', borderRadius: 10, padding: '8px 12px', boxShadow: 'var(--shadow-warm-sm)', width: 'fit-content', maxWidth: '100%' }}>
           {platformIcon(url)}
-          <span style={{ fontSize: 10, color: '#888780' }}>{shortUrl(url)}</span>
+          <span style={{ fontSize: 11.5, color: 'var(--ink-soft)' }}>{shortUrl(url)}</span>
         </div>
 
         {error ? (
           <div className="flex flex-col items-center gap-3 mt-8">
-            <IconAlertCircle size={42} color="#E24B4A" />
-            <p style={{ fontSize: 16, fontWeight: 600, color: '#2C2C2A', textAlign: 'center' }}>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--tomato-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <IconAlertCircle size={36} color="var(--tomato)" />
+            </div>
+            <p className="font-display" style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink)', textAlign: 'center', margin: 0 }}>
               {errorTitle(error, url)}
             </p>
-            <p style={{ fontSize: 12, color: '#888780', textAlign: 'center', maxWidth: 220, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: 'var(--ink-soft)', textAlign: 'center', maxWidth: 240, lineHeight: 1.6 }}>
               {errorBody(error, url)}
             </p>
             {error === 'download_failed' && url.includes('tiktok') && (
               <div className="flex gap-2 mt-1">
-                <span style={{ fontSize: 10, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
-                  YouTube ✓
-                </span>
-                <span style={{ fontSize: 10, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
-                  Instagram ✓
-                </span>
-                <span style={{ fontSize: 10, color: '#888780', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.1)', borderRadius: 99, padding: '4px 10px' }}>
-                  Facebook ✓
-                </span>
+                {['YouTube', 'Instagram', 'Facebook'].map(p => (
+                  <span key={p} style={{ fontSize: 11, color: 'var(--ink-soft)', background: 'var(--cream)', boxShadow: 'var(--shadow-warm-sm)', borderRadius: 99, padding: '5px 11px' }}>
+                    {p} ✓
+                  </span>
+                ))}
               </div>
             )}
-            <Link href="/" className="px-4 py-2 rounded-lg mt-2"
-              style={{ background: '#E03030', color: 'white', fontSize: 13, fontWeight: 500 }}>
+            <Link href="/" style={{ background: 'var(--tomato)', color: '#FFF8F4', fontSize: 14.5, fontWeight: 700, padding: '12px 22px', borderRadius: 'var(--radius)', marginTop: 6, boxShadow: 'var(--shadow-tomato)' }}>
               Try again
             </Link>
           </div>
         ) : (
           <>
-            <p style={{ fontSize: 17, fontWeight: 600, color: '#2C2C2A', marginBottom: 3 }}>
+            <p className="font-display" style={{ fontSize: 22, fontWeight: 600, color: 'var(--ink)', margin: '0 0 4px', lineHeight: 1.1 }}>
               Finding your restaurant
             </p>
-            <p style={{ fontSize: 12, color: '#888780', marginBottom: 16 }}>
+            <p style={{ fontSize: 13, color: 'var(--ink-soft)', marginBottom: 22 }}>
               This usually takes 20–40 seconds
             </p>
 
-            <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col" style={{ gap: 4 }}>
               {steps.map(({ label, sub, state }, i) => {
                 const Icon = state === 'done' ? IconCheck : STEP_ICONS[i];
                 return (
-                  <div key={label} className="flex items-center gap-2.5">
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                  <div key={label} className="flex items-center gap-3" style={{ padding: '7px 0' }}>
+                    <div className="rounded-full flex items-center justify-center flex-shrink-0"
                       style={{
-                        background: state === 'done' ? '#FFF0F0' : state === 'active' ? '#EEEDFE' : '#F7F6F3',
-                        border: state === 'active' ? '1.5px solid #7F77DD' : 'none',
+                        width: 34, height: 34,
+                        background: state === 'done' ? 'var(--tomato)' : state === 'active' ? 'var(--tomato-soft)' : 'var(--cream-100)',
+                        border: state === 'active' ? '1.5px solid var(--tomato)' : 'none',
                       }}>
                       <Icon
-                        size={17}
-                        color={state === 'done' ? '#E03030' : state === 'active' ? '#534AB7' : '#D3D1C7'}
+                        size={18}
+                        color={state === 'done' ? '#FFF8F4' : state === 'active' ? 'var(--tomato)' : 'var(--ink-mute)'}
                         style={state === 'active' ? { animation: 'spin 1s linear infinite' } : {}}
                       />
                     </div>
                     <div>
                       <p style={{
-                        fontSize: 12, fontWeight: 500, marginBottom: 1,
-                        color: state === 'done' ? '#E03030' : state === 'active' ? '#534AB7' : '#888780',
+                        fontSize: 14, fontWeight: 600, marginBottom: 1,
+                        color: state === 'pending' ? 'var(--ink-mute)' : 'var(--ink)',
                       }}>
                         {label}
                       </p>
-                      <span style={{ fontSize: 10, color: '#888780' }}>
+                      <span style={{ fontSize: 11.5, color: state === 'done' ? 'var(--tomato-deep)' : 'var(--ink-soft)' }}>
                         {state === 'done' ? 'Complete' : sub}
                       </span>
                     </div>
@@ -223,8 +221,8 @@ function ProcessingContent() {
               })}
             </div>
 
-            <div className="text-center mt-6">
-              <Link href="/" style={{ fontSize: 12, color: '#888780' }}>Cancel</Link>
+            <div className="text-center mt-7">
+              <Link href="/" style={{ fontSize: 13, color: 'var(--ink-soft)', fontWeight: 500 }}>Cancel</Link>
             </div>
           </>
         )}

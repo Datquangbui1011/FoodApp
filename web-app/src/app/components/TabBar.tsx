@@ -20,18 +20,21 @@ export default function TabBar() {
   const pathname = usePathname();
 
   return (
-    <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, display: 'flex', justifyContent: 'space-around', alignItems: 'center', paddingTop: 8, paddingBottom: 'calc(8px + env(safe-area-inset-bottom))', borderTop: '1px solid rgba(0,0,0,0.06)', background: 'white' }}>
+    <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start', paddingTop: 9, paddingBottom: 'calc(9px + env(safe-area-inset-bottom))', borderTop: '1px solid var(--cream-200)', background: 'var(--cream)', boxShadow: '0 -2px 18px rgba(60,22,14,0.06)' }}>
       {tabs.map(({ label, href, icon: Icon }) => {
         const active = pathname === href;
         return (
-          <Link key={href} href={href} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, textDecoration: 'none' }}>
-            <Icon size={29} stroke={1.8} color={active ? '#E24B4A' : '#D3D1C7'} />
-            <span style={{ fontSize: 12, fontWeight: 500, color: active ? '#E24B4A' : '#888780' }}>
+          <Link key={href} href={href} aria-current={active ? 'page' : undefined}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, textDecoration: 'none', position: 'relative', padding: '2px 14px' }}>
+            {/* active indicator dot */}
+            <span aria-hidden style={{ position: 'absolute', top: -9, width: 18, height: 3, borderRadius: 9, background: active ? 'var(--tomato)' : 'transparent', transition: 'background 0.2s ease' }} />
+            <Icon size={27} stroke={active ? 2 : 1.7} color={active ? 'var(--tomato)' : 'var(--ink-mute)'} />
+            <span style={{ fontSize: 11.5, fontWeight: active ? 700 : 500, color: active ? 'var(--tomato)' : 'var(--ink-soft)' }}>
               {label}
             </span>
           </Link>
         );
       })}
-    </div>
+    </nav>
   );
 }

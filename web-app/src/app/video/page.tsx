@@ -78,18 +78,18 @@ export default function VideoPage() {
       <StatusBar />
 
       {/* Header */}
-      <div style={{ padding: '4px 16px 16px' }}>
-        <h2 style={{ fontSize: 23, fontWeight: 700, color: '#2C2C2A', margin: '0 0 4px' }}>Find a Restaurant</h2>
-        <p style={{ fontSize: 13, color: '#888780', margin: 0 }}>Paste a food video link and we'll identify the place</p>
-      </div>
+      <header style={{ padding: '2px 18px 18px' }}>
+        <h1 className="font-display" style={{ fontSize: 30, fontWeight: 600, color: 'var(--ink)', margin: '0 0 6px', lineHeight: 1.05 }}>Find a restaurant</h1>
+        <p style={{ fontSize: 14, color: 'var(--ink-soft)', margin: 0, lineHeight: 1.5 }}>Paste a food video link and we&apos;ll identify the place.</p>
+      </header>
 
-      {/* Input */}
-      <div style={{ padding: '0 12px 20px' }}>
+      {/* Input — the single focal point */}
+      <div style={{ padding: '0 14px 22px' }}>
         <form onSubmit={handleSubmit}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', borderRadius: 14, padding: '12px 14px', border: '1.5px solid #E8E7E3', boxShadow: '0 2px 10px rgba(0,0,0,0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--cream)', borderRadius: 16, padding: '14px 15px', boxShadow: isValid ? 'var(--shadow-tomato)' : 'var(--shadow-warm)', border: isValid ? '1.5px solid var(--tomato)' : '1.5px solid transparent', transition: 'box-shadow 0.2s ease, border-color 0.2s ease' }}>
             {PlatformIcon
-              ? <PlatformIcon size={23} color="#E03030" />
-              : <IconLink size={23} color="#D3D1C7" />}
+              ? <PlatformIcon size={24} color="var(--tomato)" />
+              : <IconLink size={24} color="var(--ink-mute)" />}
             <input
               type="url" value={url}
               onChange={e => setUrl(e.target.value)}
@@ -102,12 +102,12 @@ export default function VideoPage() {
                 }
               }}
               placeholder="Paste a TikTok, Instagram, or YouTube link…"
-              style={{ flex: 1, outline: 'none', background: 'transparent', fontSize: 14, color: '#2C2C2A', border: 'none', fontFamily: 'inherit' }}
+              style={{ flex: 1, outline: 'none', background: 'transparent', fontSize: 15, color: 'var(--ink)', border: 'none', fontFamily: 'inherit' }}
             />
             {isValid && (
-              <button type="submit"
-                style={{ width: 32, height: 32, borderRadius: '50%', background: '#E03030', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                <IconArrowRight size={21} color="white" />
+              <button type="submit" aria-label="Find restaurant"
+                style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--tomato)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                <IconArrowRight size={21} color="#FFF8F4" />
               </button>
             )}
           </div>
@@ -115,31 +115,31 @@ export default function VideoPage() {
       </div>
 
       {/* Platform icons */}
-      <div style={{ padding: '0 12px 24px' }}>
-        <p style={{ fontSize: 12, color: '#B0AFA9', marginBottom: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Supported platforms</p>
+      <div style={{ padding: '0 14px 26px' }}>
+        <p style={{ fontSize: 12, color: 'var(--ink-mute)', marginBottom: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Supported platforms</p>
         <div style={{ display: 'flex', gap: 10 }}>
           {PLATFORMS.map(({ icon: Icon, label, color, bg }) => (
-            <div key={label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, background: bg, borderRadius: 12, padding: '10px 0' }}>
-              <Icon size={29} color={color} />
-              <span style={{ fontSize: 10, color: '#888780', fontWeight: 500 }}>{label}</span>
+            <div key={label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, background: bg, borderRadius: 14, padding: '13px 0' }}>
+              <Icon size={28} color={color} />
+              <span style={{ fontSize: 11, color: 'var(--ink-soft)', fontWeight: 500 }}>{label}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* How it works */}
-      <div style={{ margin: '0 12px', background: 'white', borderRadius: 16, padding: '14px', border: '1px solid #F0EFEC' }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: '#2C2C2A', margin: '0 0 12px' }}>How it works</p>
+      <div style={{ margin: '0 14px', background: 'var(--cream)', borderRadius: 'var(--radius-lg)', padding: '16px', boxShadow: 'var(--shadow-warm-sm)' }}>
+        <p className="font-display" style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)', margin: '0 0 14px' }}>How it works</p>
         {[
           ['📋', 'Copy a food video link', 'From TikTok, Instagram, YouTube, or Facebook'],
           ['🤖', 'AI identifies the restaurant', 'We analyze the video frames and audio'],
           ['📍', 'See it on the map', 'Get directions, reviews, and more'],
-        ].map(([emoji, title, sub]) => (
-          <div key={title} style={{ display: 'flex', gap: 10, marginBottom: 10, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 23, lineHeight: 1, flexShrink: 0 }}>{emoji}</span>
+        ].map(([emoji, title, sub], i, arr) => (
+          <div key={title} style={{ display: 'flex', gap: 12, marginBottom: i < arr.length - 1 ? 14 : 0, alignItems: 'center' }}>
+            <span style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--tomato-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>{emoji}</span>
             <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#2C2C2A', margin: '0 0 1px' }}>{title}</p>
-              <p style={{ fontSize: 11, color: '#888780', margin: 0 }}>{sub}</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: '0 0 2px' }}>{title}</p>
+              <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: 0, lineHeight: 1.4 }}>{sub}</p>
             </div>
           </div>
         ))}

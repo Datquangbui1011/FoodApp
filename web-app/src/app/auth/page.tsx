@@ -23,9 +23,9 @@ function PasswordStrength({ password }: { password: string }) {
       {checks.map(c => (
         <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           {c.ok
-            ? <IconCheck size={13} color="#E03030" />
+            ? <IconCheck size={13} color="var(--tomato)" />
             : <IconX size={13} color="#D3D1C7" />}
-          <span style={{ fontSize: 11, color: c.ok ? '#E03030' : '#B0AFA9' }}>{c.label}</span>
+          <span style={{ fontSize: 11, color: c.ok ? 'var(--tomato)' : '#B0AFA9' }}>{c.label}</span>
         </div>
       ))}
     </div>
@@ -90,29 +90,29 @@ function AuthContent() {
   }
 
   return (
-    <div className="flex flex-col flex-1" style={{ background: '#F5EDED' }}>
+    <div className="flex flex-col flex-1" style={{ background: 'var(--cream)' }}>
       {/* Header */}
-      <div style={{ background: '#E03030' }}>
+      <header style={{ background: 'radial-gradient(120% 120% at 50% -20%, #F2603F 0%, var(--tomato) 60%)' }}>
         <StatusBar dark />
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 20px' }}>
-          <div style={{ width: 72, height: 72, borderRadius: 18, overflow: 'hidden', marginBottom: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}>
-            <img src="/logo.png" alt="Foody" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0 22px' }}>
+          <div style={{ width: 70, height: 70, borderRadius: 20, overflow: 'hidden', marginBottom: 12, boxShadow: '0 12px 30px rgba(120,30,18,0.35)' }}>
+            <img src="/logo.png" alt="Foody app icon" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           </div>
-          <p style={{ color: 'white', fontSize: 23, fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Foody</p>
-          <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, margin: '3px 0 0' }}>
+          <p className="font-display" style={{ color: '#FFF8F4', fontSize: 28, fontWeight: 600, margin: 0, lineHeight: 1 }}>Foody</p>
+          <p style={{ color: 'rgba(255,248,244,0.72)', fontSize: 13.5, margin: '6px 0 0' }}>
             {mode === 'signup' ? 'Create your account' : 'Welcome back'}
           </p>
         </div>
-      </div>
+      </header>
 
       {/* Mode tabs */}
       <div style={{ margin: '16px 16px 0', display: 'flex', background: 'white', borderRadius: 12, padding: 3, boxShadow: '0 1px 6px rgba(0,0,0,0.07)' }}>
         {(['signin', 'signup'] as Mode[]).map(m => (
           <button key={m} onClick={() => switchMode(m)}
             style={{ flex: 1, padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, transition: 'all 0.2s',
-              background: mode === m ? '#E03030' : 'transparent',
+              background: mode === m ? 'var(--tomato)' : 'transparent',
               color: mode === m ? 'white' : '#888780',
-              boxShadow: mode === m ? '0 2px 8px rgba(224,48,48,0.3)' : 'none',
+              boxShadow: mode === m ? '0 2px 8px rgba(194,55,31,0.3)' : 'none',
             }}>
             {m === 'signin' ? 'Sign in' : 'Sign up'}
           </button>
@@ -132,7 +132,7 @@ function AuthContent() {
                 <input
                   type="text" value={fullName}
                   onChange={e => setFullName(e.target.value)}
-                  placeholder="Jane Doe"
+                  placeholder="Alex Rivera"
                   required={mode === 'signup'}
                   style={{ flex: 1, outline: 'none', background: 'transparent', fontSize: 16, color: '#2C2C2A', border: 'none', fontFamily: 'inherit' }}
                 />
@@ -148,7 +148,7 @@ function AuthContent() {
               <input
                 type="email" value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="jane@example.com"
+                placeholder="alex@example.com"
                 required
                 style={{ flex: 1, outline: 'none', background: 'transparent', fontSize: 16, color: '#2C2C2A', border: 'none', fontFamily: 'inherit' }}
               />
@@ -215,8 +215,8 @@ function AuthContent() {
           {/* Submit */}
           <button type="submit" disabled={loading || !canSubmit}
             style={{ padding: '13px 0', borderRadius: 12, border: 'none', cursor: loading || !canSubmit ? 'default' : 'pointer', fontFamily: 'inherit', fontSize: 17, fontWeight: 700, marginTop: 4,
-              background: loading || !canSubmit ? '#D3D1C7' : '#E03030',
-              color: 'white', boxShadow: loading || !canSubmit ? 'none' : '0 4px 16px rgba(224,48,48,0.35)',
+              background: loading || !canSubmit ? '#D3D1C7' : 'var(--tomato)',
+              color: 'white', boxShadow: loading || !canSubmit ? 'none' : '0 4px 16px rgba(194,55,31,0.35)',
             }}>
             {loading ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
           </button>
@@ -225,7 +225,7 @@ function AuthContent() {
             <p style={{ textAlign: 'center', fontSize: 13, color: '#888780', margin: 0 }}>
               Don&apos;t have an account?{' '}
               <button type="button" onClick={() => switchMode('signup')}
-                style={{ background: 'none', border: 'none', color: '#E03030', fontWeight: 600, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
+                style={{ background: 'none', border: 'none', color: 'var(--tomato)', fontWeight: 600, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>
                 Sign up
               </button>
             </p>

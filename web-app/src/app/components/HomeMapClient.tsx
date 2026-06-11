@@ -512,7 +512,7 @@ export default function HomeMapClient() {
       <div className="absolute left-3 right-3 z-10" style={{ top: 'calc(0.75rem + env(safe-area-inset-top))' }}>
         <form onSubmit={handleSubmit}>
           <div className="flex items-center gap-2 rounded-xl px-3 py-2.5"
-            style={{ background: 'white', boxShadow: '0 4px 16px rgba(0,0,0,0.12)', border: '1px solid rgba(0,0,0,0.06)' }}>
+            style={{ background: 'var(--cream)', boxShadow: 'var(--shadow-warm)', border: '1px solid var(--border)' }}>
             <img src="/logo.png" alt="FoodApp" style={{ width: 28, height: 28, objectFit: 'contain', flexShrink: 0 }} />
             <IconSearch size={18} color="#888780" />
             <input
@@ -540,8 +540,8 @@ export default function HomeMapClient() {
               <button key={cat.label} onClick={() => handleCategoryPress(cat)}
                 style={{
                   fontSize: 12, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0,
-                  border: `1px solid ${active ? '#E03030' : 'rgba(0,0,0,0.10)'}`,
-                  background: active ? '#E03030' : 'rgba(255,255,255,0.96)',
+                  border: `1px solid ${active ? 'var(--tomato)' : 'rgba(0,0,0,0.10)'}`,
+                  background: active ? 'var(--tomato)' : 'rgba(255,255,255,0.96)',
                   color: active ? 'white' : '#2C2C2A', borderRadius: 9999,
                   padding: '5px 10px', cursor: 'pointer', fontFamily: 'inherit',
                   boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
@@ -576,8 +576,8 @@ export default function HomeMapClient() {
         <div className="flex gap-2 mt-1.5">
           {savedPins.length > 0 && !activeCategory && snap === 'hidden' && (
             <div className="flex items-center gap-1 px-2.5 py-1 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 1px 6px rgba(0,0,0,0.1)', fontSize: 10, color: '#E03030', fontWeight: 500 }}>
-              <IconMapPin size={13} color="#E03030" />
+              style={{ background: 'rgba(255,255,255,0.95)', boxShadow: '0 1px 6px rgba(0,0,0,0.1)', fontSize: 10, color: 'var(--tomato)', fontWeight: 500 }}>
+              <IconMapPin size={13} color="var(--tomato)" />
               {savedPins.length} saved
             </div>
           )}
@@ -595,7 +595,7 @@ export default function HomeMapClient() {
       {toast && (
         <div style={{
           position: 'absolute', bottom: 90, left: '50%', transform: 'translateX(-50%)', zIndex: 50,
-          background: toast.ok ? '#E03030' : '#E24B4A', color: 'white',
+          background: toast.ok ? 'var(--tomato)' : '#E24B4A', color: 'white',
           borderRadius: 99, padding: '8px 18px', fontSize: 13, fontWeight: 600,
           boxShadow: '0 4px 16px rgba(0,0,0,0.2)', whiteSpace: 'nowrap',
           animation: 'fadeUp 0.2s ease',
@@ -628,8 +628,8 @@ export default function HomeMapClient() {
                 <button key={pin.id} onClick={() => { setSelectedId(pin.id); setSnap('peek'); }}
                   style={{
                     flexShrink: 0, width: 160, borderRadius: 14, padding: '10px 12px',
-                    background: active ? '#E03030' : 'white',
-                    border: active ? '2px solid #E03030' : '1.5px solid rgba(0,0,0,0.08)',
+                    background: active ? 'var(--tomato)' : 'white',
+                    border: active ? '2px solid var(--tomato)' : '1.5px solid rgba(0,0,0,0.08)',
                     boxShadow: '0 4px 14px rgba(0,0,0,0.14)', textAlign: 'left', cursor: 'pointer',
                     fontFamily: 'inherit',
                   }}>
@@ -656,7 +656,7 @@ export default function HomeMapClient() {
                       <span style={{
                         fontSize: 9, fontWeight: 600, borderRadius: 99, padding: '2px 6px',
                         background: active ? 'rgba(255,255,255,0.2)' : (pin.confidence >= 70 ? '#FFF0F0' : '#FFF3E0'),
-                        color: active ? 'white' : (pin.confidence >= 70 ? '#E03030' : '#E85D04'),
+                        color: active ? 'white' : (pin.confidence >= 70 ? 'var(--tomato)' : '#E85D04'),
                       }}>
                         {pin.confidence}%
                       </span>
@@ -671,7 +671,7 @@ export default function HomeMapClient() {
 
       {/* ── Bottom sheet ─────────────────────────────────────────────────── */}
       <motion.div ref={sheetRef} className="absolute bottom-0 left-0 right-0 z-20"
-        style={{ height: SHEET_HEIGHT, y: sheetY, background: 'white', borderRadius: '18px 18px 0 0', boxShadow: '0 -6px 28px rgba(0,0,0,0.14)', display: 'flex', flexDirection: 'column' }}>
+        style={{ height: SHEET_HEIGHT, y: sheetY, background: 'var(--cream)', borderRadius: '22px 22px 0 0', boxShadow: '0 -8px 32px rgba(60,22,14,0.16)', display: 'flex', flexDirection: 'column' }}>
 
         {/* Drag handle + peek header */}
         <div style={{ touchAction: 'none', cursor: 'grab', flexShrink: 0 }}
@@ -696,7 +696,7 @@ export default function HomeMapClient() {
               )}
               {/* Name row + save button */}
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <p style={{ fontSize: 20, fontWeight: 700, color: '#2C2C2A', margin: '0 0 4px', lineHeight: 1.25, flex: 1 }}>
+                <p className="font-display" style={{ fontSize: 23, fontWeight: 600, color: 'var(--ink)', margin: '0 0 4px', lineHeight: 1.15, flex: 1 }}>
                   {selectedPin.name}
                 </p>
                 <button onClick={handleSave} disabled={saving}
@@ -716,7 +716,7 @@ export default function HomeMapClient() {
                   </span>
                 )}
                 {details?.openNow != null && (
-                  <span style={{ fontSize: 10, fontWeight: 600, color: details.openNow ? '#E03030' : '#E24B4A' }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: details.openNow ? 'var(--tomato)' : '#E24B4A' }}>
                     {details.openNow ? '● Open' : '● Closed'}
                   </span>
                 )}
@@ -745,7 +745,7 @@ export default function HomeMapClient() {
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 16px 10px', flexShrink: 0 }}>
-              <p style={{ fontSize: 17, fontWeight: 700, color: '#2C2C2A', margin: 0 }}>
+              <p className="font-display" style={{ fontSize: 19, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>
                 {discoverLoading ? 'Finding restaurants…' : `${discoverList.length} restaurants near you`}
               </p>
               <button onClick={() => setSnap(snap === 'peek' ? 'expanded' : 'peek')}
@@ -796,7 +796,7 @@ export default function HomeMapClient() {
                         </div>
                         {/* Open badge */}
                         {r.openNow != null && (
-                          <div style={{ position: 'absolute', bottom: 6, left: 6, background: r.openNow ? '#E03030' : '#E24B4A', borderRadius: 99, padding: '2px 5px' }}>
+                          <div style={{ position: 'absolute', bottom: 6, left: 6, background: r.openNow ? 'var(--tomato)' : '#E24B4A', borderRadius: 99, padding: '2px 5px' }}>
                             <span style={{ fontSize: 9, fontWeight: 600, color: 'white' }}>{r.openNow ? 'Open' : 'Closed'}</span>
                           </div>
                         )}
@@ -896,7 +896,7 @@ export default function HomeMapClient() {
                         <p style={{ fontSize: 10, color: '#888780', margin: '0 0 5px' }}>
                           {sug.cuisineType || 'Restaurant'}
                         </p>
-                        <span style={{ fontSize: 9, background: '#FFF0F0', color: '#E03030', borderRadius: 99, padding: '2px 7px', fontWeight: 600 }}>
+                        <span style={{ fontSize: 9, background: '#FFF0F0', color: 'var(--tomato)', borderRadius: 99, padding: '2px 7px', fontWeight: 600 }}>
                           View →
                         </span>
                       </button>
@@ -941,7 +941,7 @@ export default function HomeMapClient() {
                 )}
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedPin.name} ${selectedPin.address}`)}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, padding: '9px 0', background: '#E03030', textDecoration: 'none', fontSize: 12, fontWeight: 600, color: 'white' }}>
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, padding: '9px 0', background: 'var(--tomato)', textDecoration: 'none', fontSize: 12, fontWeight: 600, color: 'white' }}>
                   🗺 Directions
                 </a>
               </div>
@@ -980,7 +980,7 @@ export default function HomeMapClient() {
               {details?.phone && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                   <span style={{ fontSize: 18 }}>📞</span>
-                  <a href={`tel:${details.phone}`} style={{ fontSize: 12, color: '#E03030', margin: 0, textDecoration: 'none', fontWeight: 500 }}>{details.phone}</a>
+                  <a href={`tel:${details.phone}`} style={{ fontSize: 12, color: 'var(--tomato)', margin: 0, textDecoration: 'none', fontWeight: 500 }}>{details.phone}</a>
                 </div>
               )}
 
@@ -996,7 +996,7 @@ export default function HomeMapClient() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {details!.topReviews.map((review, i) => {
                       const positive = review.rating >= 4;
-                      const accent   = positive ? '#E03030' : review.rating <= 2 ? '#E24B4A' : '#888780';
+                      const accent   = positive ? 'var(--tomato)' : review.rating <= 2 ? '#E24B4A' : '#888780';
                       const bg       = positive ? '#F0FAF5' : review.rating <= 2 ? '#FEF2F2' : '#F7F6F3';
                       return (
                         <div key={i} style={{ background: bg, borderRadius: 10, padding: '9px 12px', borderLeft: `3px solid ${accent}` }}>
@@ -1029,7 +1029,7 @@ export default function HomeMapClient() {
                     <p style={{ fontSize: 12, fontWeight: 600, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Spotted in video</p>
                     {selectedPin.confidence != null && (
                       <span style={{ fontSize: 9, fontWeight: 700, color: 'white',
-                        background: selectedPin.confidence >= 80 ? '#E03030' : selectedPin.confidence >= 60 ? '#E8A020' : '#E24B4A',
+                        background: selectedPin.confidence >= 80 ? 'var(--tomato)' : selectedPin.confidence >= 60 ? '#E8A020' : '#E24B4A',
                         borderRadius: 99, padding: '2px 6px' }}>
                         {selectedPin.confidence}% match
                       </span>
@@ -1123,7 +1123,7 @@ export default function HomeMapClient() {
               {details && !details.phone && !details.website && (
                 <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedPin.name} ${selectedPin.address}`)}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, padding: '11px 0', background: '#E03030', color: 'white', fontSize: 13, fontWeight: 600, textDecoration: 'none', marginTop: 4 }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, padding: '11px 0', background: 'var(--tomato)', color: 'white', fontSize: 13, fontWeight: 600, textDecoration: 'none', marginTop: 4 }}>
                   <IconMapPin size={17} />
                   Get Directions
                 </a>

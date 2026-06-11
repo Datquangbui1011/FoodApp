@@ -7,7 +7,8 @@ import TabBar from '../components/TabBar';
 import StatusBar from '../components/StatusBar';
 import { createClient } from '@/lib/supabase/client';
 
-const COLORS = ['#C5E8D8', '#D5D2F5', '#F5D9A0', '#F5C4B3'];
+// Warm food-toned placeholder washes for thumbnails without a photo.
+const COLORS = ['#F2DACE', '#EFE2C8', '#EAD6CB', '#F3DCCF'];
 const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
 
 interface SavedEntry {
@@ -83,70 +84,78 @@ export default function Saved() {
     <div className="flex flex-col flex-1">
 
       {/* Header */}
-      <div style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+      <header style={{ flexShrink: 0 }}>
         <StatusBar />
-        <div className="px-3.5 pb-3">
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#2C2C2A' }}>Saved</h2>
+        <div style={{ padding: '0 18px 14px' }}>
+          <h1 className="font-display" style={{ fontSize: 30, fontWeight: 600, color: 'var(--ink)', margin: 0, lineHeight: 1 }}>Saved</h1>
+          {!loading && items.length > 0 && (
+            <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '6px 0 0' }}>
+              {items.length} {items.length === 1 ? 'place' : 'places'} you want to try
+            </p>
+          )}
         </div>
-      </div>
+      </header>
 
       {/* List */}
-      <div className="flex-1 overflow-y-auto p-3" style={{ paddingBottom: 'calc(12px + 52px + env(safe-area-inset-bottom))' }}>
+      <main className="flex-1 overflow-y-auto" style={{ padding: '4px 14px', paddingBottom: 'calc(16px + 64px + env(safe-area-inset-bottom))' }}>
         {loading ? (
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.08)', background: 'white' }}>
-                <div style={{ height: 80, background: '#F7F6F3' }} />
-                <div style={{ padding: '8px 10px 10px' }}>
-                  <div style={{ height: 8, borderRadius: 4, background: '#F0EFEC', marginBottom: 6, width: '70%' }} />
-                  <div style={{ height: 6, borderRadius: 4, background: '#F0EFEC', width: '50%' }} />
+              <div key={i} style={{ borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--cream)', boxShadow: 'var(--shadow-warm-sm)' }}>
+                <div style={{ height: 100, background: 'var(--cream-100)' }} />
+                <div style={{ padding: '10px 11px 12px' }}>
+                  <div style={{ height: 9, borderRadius: 5, background: 'var(--cream-200)', marginBottom: 7, width: '75%' }} />
+                  <div style={{ height: 7, borderRadius: 5, background: 'var(--cream-200)', width: '50%' }} />
                 </div>
               </div>
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center pt-20 gap-3">
-            <IconHeart size={42} color="#D3D1C7" />
-            <p style={{ fontSize: 16, fontWeight: 600, color: '#2C2C2A' }}>Nothing saved yet</p>
-            <p style={{ fontSize: 12, color: '#888780', textAlign: 'center', lineHeight: 1.6 }}>
-              Tap the heart on any restaurant{'\n'}in the bottom sheet to save it here.
+          <div className="flex flex-col items-center justify-center" style={{ paddingTop: 90, gap: 14 }}>
+            <div style={{ width: 76, height: 76, borderRadius: '50%', background: 'var(--tomato-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <IconHeart size={34} color="var(--tomato)" />
+            </div>
+            <p className="font-display" style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>No saved places yet</p>
+            <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', textAlign: 'center', lineHeight: 1.6, maxWidth: 240, textWrap: 'balance' }}>
+              Tap the heart on any restaurant to keep it here for later.
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-3">
             {items.map((item, i) => {
               const photo = photoUrl(item.name, item.lat, item.lng);
               return (
                 <button
                   key={item.id}
                   onClick={() => handleTap(item)}
-                  style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.08)', background: 'white', textAlign: 'left', cursor: 'pointer', padding: 0, display: 'block', width: '100%' }}
+                  style={{ borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--cream)', boxShadow: 'var(--shadow-warm-sm)', textAlign: 'left', cursor: 'pointer', padding: 0, display: 'block', width: '100%' }}
                 >
                   {/* Thumbnail */}
-                  <div style={{ height: 82, background: COLORS[i % COLORS.length], position: 'relative', overflow: 'hidden' }}>
+                  <div style={{ height: 104, background: COLORS[i % COLORS.length], position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span aria-hidden style={{ fontSize: 30, opacity: 0.5 }}>🍽️</span>
                     {photo && (
-                      <img src={photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      <img src={photo} alt={`${item.name} photo`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'absolute', inset: 0 }}
                         onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     )}
                     {item.rating && (
-                      <div style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.55)', borderRadius: 99, padding: '2px 6px', display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: 9, color: '#F5A623' }}>★</span>
-                        <span style={{ fontSize: 9, color: 'white', fontWeight: 600 }}>{item.rating.toFixed(1)}</span>
+                      <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(25,16,16,0.62)', backdropFilter: 'blur(4px)', borderRadius: 99, padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <span style={{ fontSize: 10, color: '#F5A623' }}>★</span>
+                        <span style={{ fontSize: 10.5, color: 'white', fontWeight: 600 }}>{item.rating.toFixed(1)}</span>
                       </div>
                     )}
                   </div>
 
                   {/* Info */}
-                  <div style={{ padding: '8px 10px 10px' }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: '#2C2C2A', marginBottom: 3, lineHeight: 1.3,
+                  <div style={{ padding: '10px 11px 12px' }}>
+                    <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, lineHeight: 1.3,
                       overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                       {item.name}
                     </p>
                     {item.cuisineType ? (
-                      <span style={{ fontSize: 9, color: '#888780' }}>{item.cuisineType}</span>
+                      <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{item.cuisineType}</span>
                     ) : item.address ? (
-                      <span style={{ fontSize: 9, color: '#888780', display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <IconMapPin size={9} color="#D3D1C7" />{item.address.split(',')[0]}
+                      <span style={{ fontSize: 11, color: 'var(--ink-mute)', display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <IconMapPin size={11} color="var(--ink-mute)" />{item.address.split(',')[0]}
                       </span>
                     ) : null}
                   </div>
@@ -155,7 +164,7 @@ export default function Saved() {
             })}
           </div>
         )}
-      </div>
+      </main>
 
       <TabBar />
     </div>

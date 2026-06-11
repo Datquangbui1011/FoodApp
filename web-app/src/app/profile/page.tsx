@@ -42,52 +42,57 @@ export default async function Profile() {
   return (
     <div className="flex flex-col flex-1">
 
-      {/* Header */}
-      <div style={{ background: '#E03030' }}>
+      {/* Header — warm tomato block with soft top glow */}
+      <header style={{ background: 'radial-gradient(120% 120% at 50% -20%, #F2603F 0%, var(--tomato) 60%)' }}>
         <StatusBar dark />
-        <div className="px-3.5 pt-1 pb-6 text-center">
+        <div style={{ padding: '6px 18px 30px', textAlign: 'center' }}>
           <div
-            className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"
-            style={{ background: '#1D9E75', border: '2.5px solid #FFB9B8', fontSize: 21, fontWeight: 600, color: 'white' }}
+            style={{ width: 78, height: 78, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', background: 'var(--cream)', border: '3px solid rgba(251,247,242,0.4)', fontSize: 28, fontWeight: 600, color: 'var(--tomato)', fontFamily: 'var(--font-fraunces)', boxShadow: '0 10px 26px rgba(120,30,18,0.3)' }}
           >
             {initials}
           </div>
-          <p style={{ color: 'white', fontSize: 17, fontWeight: 600, marginBottom: 2 }}>{username}</p>
-          <p style={{ color: '#FFB9B8', fontSize: 12 }}>@{username} · Member since {memberYear}</p>
+          <p className="font-display" style={{ color: '#FFF8F4', fontSize: 24, fontWeight: 600, margin: 0, lineHeight: 1.1 }}>{username}</p>
+          <p style={{ color: 'rgba(255,248,244,0.72)', fontSize: 13, margin: '6px 0 0' }}>Member since {memberYear}</p>
         </div>
-      </div>
+      </header>
 
-      {/* Stats card */}
+      {/* Stats card — overlaps the header */}
       <div
-        className="flex mx-3 -mt-3 rounded-xl overflow-hidden bg-white"
-        style={{ border: '1px solid rgba(0,0,0,0.1)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}
+        className="flex"
+        style={{ margin: '-20px 14px 0', borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--cream)', boxShadow: 'var(--shadow-warm)' }}
       >
         {stats.map(({ num, label }, i) => (
           <div
             key={label}
-            className="flex-1 py-2.5 text-center"
-            style={{ borderLeft: i > 0 ? '1px solid rgba(0,0,0,0.06)' : 'none' }}
+            className="flex-1 text-center"
+            style={{ padding: '14px 0', borderLeft: i > 0 ? '1px solid var(--cream-200)' : 'none' }}
           >
-            <span style={{ display: 'block', fontSize: 21, fontWeight: 600, color: '#2C2C2A' }}>{num}</span>
-            <span style={{ fontSize: 9, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+            <span className="font-display" style={{ display: 'block', fontSize: 26, fontWeight: 600, color: 'var(--ink)', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{num}</span>
+            <span style={{ fontSize: 10.5, color: 'var(--ink-soft)', marginTop: 5, display: 'block' }}>{label}</span>
           </div>
         ))}
       </div>
 
-      {/* Menu */}
-      <div className="flex-1 mt-3">
-        {menuItems.map(({ icon: Icon, label }) => (
-          <div
-            key={label}
-            className="flex items-center gap-2.5 px-3.5 py-2.5 border-b"
-            style={{ borderColor: 'rgba(0,0,0,0.06)' }}
-          >
-            <Icon size={20} color="#888780" />
-            <span style={{ fontSize: 13, flex: 1, color: '#2C2C2A' }}>{label}</span>
-            <IconChevronRight size={16} color="#D3D1C7" />
-          </div>
-        ))}
-        <SignOutButton />
+      {/* Menu — grouped settings cells */}
+      <div className="flex-1" style={{ marginTop: 22 }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 18px 8px' }}>Account</p>
+        <div style={{ margin: '0 14px', borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--cream)', boxShadow: 'var(--shadow-warm-sm)' }}>
+          {menuItems.map(({ icon: Icon, label }, i) => (
+            <button
+              key={label}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '14px 15px', background: 'none', border: 'none', borderTop: i > 0 ? '1px solid var(--cream-100)' : 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+            >
+              <span style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--tomato-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon size={18} color="var(--tomato)" stroke={1.9} />
+              </span>
+              <span style={{ fontSize: 14.5, flex: 1, color: 'var(--ink)', fontWeight: 500 }}>{label}</span>
+              <IconChevronRight size={17} color="var(--ink-mute)" />
+            </button>
+          ))}
+        </div>
+        <div style={{ marginTop: 18 }}>
+          <SignOutButton />
+        </div>
       </div>
 
       <TabBar />
