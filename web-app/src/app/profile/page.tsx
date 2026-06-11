@@ -6,7 +6,6 @@ import {
   IconBell,
   IconChevronRight,
 } from '@tabler/icons-react';
-import TabBar from '../components/TabBar';
 import SignOutButton from '../components/SignOutButton';
 import StatusBar from '../components/StatusBar';
 import { createClient } from '@/lib/supabase/server';
@@ -95,7 +94,6 @@ export default async function Profile() {
         </div>
       </div>
 
-      <TabBar />
     </div>
   );
 }

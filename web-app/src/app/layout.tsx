@@ -4,6 +4,7 @@ import "./globals.css";
 import Providers from "./components/Providers";
 import PageTransition from "./components/PageTransition";
 import UpdatePrompt from "./components/UpdatePrompt";
+import TabBar from "./components/TabBar";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -54,6 +55,9 @@ export default function RootLayout({
         <Providers>
           <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#191010' }}>
             <PageTransition>{children}</PageTransition>
+            {/* Pinned to the viewport (outside the page-transition transform) so it
+                fills the iOS home-indicator safe area. Self-hides on auth routes. */}
+            <TabBar />
             <UpdatePrompt />
           </div>
         </Providers>

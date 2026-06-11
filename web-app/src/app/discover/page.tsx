@@ -8,7 +8,6 @@ import {
   IconChevronDown, IconPhone, IconStar, IconStarFilled,
   IconLoader2, IconChevronUp,
 } from '@tabler/icons-react';
-import TabBar from '../components/TabBar';
 import StatusBar from '../components/StatusBar';
 import type { MapPin } from '../components/HomeMap';
 import type { NearbyRestaurant } from '../api/nearby-restaurants/route';
@@ -382,10 +381,6 @@ export default function DiscoverPage() {
             </div>
           )}
         </div>
-      </div>
-
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 30 }}>
-        <TabBar />
       </div>
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>

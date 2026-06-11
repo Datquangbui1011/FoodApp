@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { IconSearch, IconMapPin } from '@tabler/icons-react';
-import TabBar from '../components/TabBar';
 import StatusBar from '../components/StatusBar';
 
 const CATEGORIES = ['🔥 Trending', 'Ramen', 'Pho', 'BBQ', 'Cafes'];
@@ -103,7 +102,6 @@ export default function Explore() {
         )}
       </main>
 
-      <TabBar />
     </div>
   );
 }

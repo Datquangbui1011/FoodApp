@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IconMapPin, IconHeart } from '@tabler/icons-react';
-import TabBar from '../components/TabBar';
 import StatusBar from '../components/StatusBar';
 import { createClient } from '@/lib/supabase/client';
 
@@ -166,7 +165,6 @@ export default function Saved() {
         )}
       </main>
 
-      <TabBar />
     </div>
   );
 }

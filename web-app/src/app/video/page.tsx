@@ -6,7 +6,6 @@ import {
   IconBrandTiktok, IconBrandInstagram, IconBrandFacebook,
   IconBrandYoutube, IconLink, IconArrowRight,
 } from '@tabler/icons-react';
-import TabBar from '../components/TabBar';
 import StatusBar from '../components/StatusBar';
 import { createClient } from '@/lib/supabase/client';
 
@@ -146,7 +145,6 @@ export default function VideoPage() {
       </div>
 
       <div style={{ flex: 1 }} />
-      <TabBar />
     </div>
   );
 }

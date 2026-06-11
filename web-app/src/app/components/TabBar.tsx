@@ -16,8 +16,16 @@ const tabs = [
   { label: 'Me',          href: '/profile', icon: IconUser     },
 ];
 
+// Routes without a tab bar (auth/onboarding/transient flows).
+const HIDDEN_ON = ['/landing', '/auth', '/processing', '/legal'];
+
 export default function TabBar() {
   const pathname = usePathname();
+
+  // Rendered once at the layout level, outside the page-transition transform, so
+  // it stays pinned to the real viewport bottom and its background fills the iOS
+  // home-indicator safe area. Hidden on routes that shouldn't show it.
+  if (HIDDEN_ON.some(p => pathname.startsWith(p))) return null;
 
   return (
     <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start', paddingTop: 9, paddingBottom: 'calc(9px + env(safe-area-inset-bottom))', borderTop: '1px solid var(--cream-200)', background: 'var(--cream)', boxShadow: '0 -2px 18px rgba(60,22,14,0.06)' }}>
