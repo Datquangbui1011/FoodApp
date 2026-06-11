@@ -5,17 +5,12 @@ import { motion, useSpring } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import {
-  IconBrandTiktok,
-  IconBrandFacebook,
-  IconBrandYoutube,
-  IconBrandInstagram,
   IconMapPin,
   IconStar,
   IconStarFilled,
   IconHeart,
   IconHeartFilled,
   IconLoader2,
-  IconPlayerPlay,
   IconPhone,
   IconChevronUp,
   IconChevronDown,
@@ -26,6 +21,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { MapPin } from './HomeMap';
 import type { PlaceDetails } from '../api/place-details/route';
 import type { NearbyRestaurant } from '../api/nearby-restaurants/route';
+import RestaurantDetailTabs from './RestaurantDetailTabs';
 
 const HomeMap = dynamic(() => import('./HomeMap'), { ssr: false });
 
@@ -53,21 +49,25 @@ const CATEGORIES: Category[] = [
 // the category chips and its bottom sits just above the tab bar (see measureSheet).
 const SHEET_HEIGHT = 540;   // fallback before first measure
 const PEEK_HEIGHT  = 120;   // how much of the sheet shows when collapsed
-const GAP_ABOVE_TABBAR = 8; // breathing room between the sheet and the menubar
+const GAP_ABOVE_TABBAR = 0; // sheet docks flush against the tab bar (no gap)
 const GAP_BELOW_CHIPS  = 12; // breathing room between the chips and the expanded sheet
 
 type SheetSnap = 'hidden' | 'peek' | 'expanded';
 
+// Cache the nearby-restaurants result for the session so navigating away from the
+// home tab and back doesn't re-fetch (and re-spend API tokens). Module-scoped so
+// it survives the component unmounting/remounting on client navigation.
+let discoverCache: { location: { lat: number; lng: number }; list: NearbyRestaurant[] } | null = null;
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-function detectPlatform(url: string) {
-  if (url.includes('tiktok.com')) return 'tiktok';
-  if (url.includes('instagram.com')) return 'instagram';
-  if (url.includes('facebook.com') || url.includes('fb.watch')) return 'facebook';
-  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
-  return null;
+// Numeric TikTok video id (for the embed player), or null if the URL isn't a
+// canonical /video/<id> link.
+export function tiktokVideoId(url: string): string | null {
+  const m = url.match(/\/video\/(\d+)/);
+  return m ? m[1] : null;
 }
 
-function StarRating({ rating, count }: { rating: number | null | undefined; count?: number | null }) {
+export function StarRating({ rating, count }: { rating: number | null | undefined; count?: number | null }) {
   if (rating == null) return null;
   const full = Math.round(rating);
   return (
@@ -91,11 +91,12 @@ export default function HomeMapClient() {
   const [savedPins, setSavedPins]         = useState<MapPin[]>([]);
   const [nearbyPins, setNearbyPins]       = useState<MapPin[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [userLocation, setUserLocation]   = useState<{ lat: number; lng: number } | null>(null);
+  // Seed from the session cache (if we already searched once) so we don't refetch.
+  const [userLocation, setUserLocation]   = useState<{ lat: number; lng: number } | null>(() => discoverCache?.location ?? null);
   const [resultPins, setResultPins]       = useState<MapPin[]>([]);
   const [savedNames, setSavedNames]       = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId]       = useState<string | null>(null);
-  const [snap, setSnap]                   = useState<SheetSnap>('hidden');
+  const [snap, setSnap]                   = useState<SheetSnap>(discoverCache ? 'peek' : 'hidden');
   const [details, setDetails]             = useState<PlaceDetails | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [saving, setSaving]               = useState(false);
@@ -103,8 +104,7 @@ export default function HomeMapClient() {
   const [hideHowTo, setHideHowTo]         = useState(false);
   const [suggestions, setSuggestions]     = useState<MapPin[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [discoverList, setDiscoverList]   = useState<NearbyRestaurant[]>([]);
+  const [discoverList, setDiscoverList]   = useState<NearbyRestaurant[]>(() => discoverCache?.list ?? []);
   const [discoverLoading, setDiscoverLoading] = useState(false);
   const discoverAllRef = useRef<NearbyRestaurant[]>([]);
 
@@ -235,23 +235,21 @@ export default function HomeMapClient() {
   useEffect(() => {
     const pin = selectedPin;
     async function load() {
-      if (!pin) { setDetails(null); setSuggestions([]); setShowSuggestions(false); return; }
+      if (!pin) { setDetails(null); setSuggestions([]); return; }
       setDetails(null);
       setSuggestions([]);
-      setShowSuggestions(false);
       setDetailsLoading(true);
       try {
         const qs = new URLSearchParams({
           name: pin.name,
           lat:  String(pin.lat),
           lng:  String(pin.lng),
+          ...(pin.address ? { address: pin.address } : {}),
           ...(userLocation ? { userLat: String(userLocation.lat), userLng: String(userLocation.lng) } : {}),
           ...(pin.videoUrl ? { videoUrl: pin.videoUrl } : {}),
         });
         const d: PlaceDetails = await fetch(`/api/place-details?${qs}`).then(r => r.json());
         setDetails(d);
-        // Auto-load suggestions if place is closed
-        if (d.openNow === false) loadSuggestions(pin, true);
       } catch { /* ignore */ }
       finally { setDetailsLoading(false); }
     }
@@ -259,9 +257,8 @@ export default function HomeMapClient() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  async function loadSuggestions(pin: MapPin, auto = false) {
+  async function loadSuggestions(pin: MapPin) {
     if (suggestionsLoading) return;
-    setShowSuggestions(true);
     setSuggestionsLoading(true);
     try {
       const cuisine = pin.cuisineType?.toLowerCase().replace(/[^a-z0-9|]/g, '') || 'restaurant';
@@ -295,7 +292,6 @@ export default function HomeMapClient() {
         .filter(p => p.name && p.name !== pin.name && p.lat && p.lng)
         .slice(0, 5);
       setSuggestions(pins);
-      if (!auto && pins.length === 0) showToast('No similar places found nearby', false);
     } catch { /* ignore */ }
     finally { setSuggestionsLoading(false); }
   }
@@ -306,9 +302,9 @@ export default function HomeMapClient() {
     toastTimer.current = setTimeout(() => setToast(null), 3000);
   }, []);
 
-  // Navigate to a pin from the Saved page
+  // Navigate to a pin from the Saved page — open its detail sheet expanded.
   useEffect(() => {
-    async function nav() {
+    function nav() {
       const raw = sessionStorage.getItem('foodmap_navigate');
       if (!raw) return;
       sessionStorage.removeItem('foodmap_navigate');
@@ -317,15 +313,34 @@ export default function HomeMapClient() {
         pin.id = `nav-${Date.now()}`;
         setResultPins([pin]);
         setSelectedId(pin.id);
-        setSnap('peek');
+        setSnap('expanded');
       } catch { /* ignore */ }
     }
     nav();
   }, []);
 
+  // Reopen the detail sheet after returning from the /map page.
+  useEffect(() => {
+    function reopen() {
+      const raw = sessionStorage.getItem('foodmap_reopen');
+      if (!raw) return;
+      sessionStorage.removeItem('foodmap_reopen');
+      try {
+        const pin: MapPin = JSON.parse(raw);
+        if (!pin.id) pin.id = `reopen-${Date.now()}`;
+        setResultPins([pin]);
+        setSelectedId(pin.id);
+        setSnap('expanded');
+      } catch { /* ignore */ }
+    }
+    reopen();
+  }, []);
+
   function handlePinSelect(id: string | null) {
     setSelectedId(id);
-    setSnap(id ? 'peek' : 'hidden');
+    // Tapping a pin on the map pulls the sheet up to its detail; tapping the map
+    // background (no id) closes it.
+    setSnap(id ? 'expanded' : 'hidden');
   }
 
   function handleWrongPlace() {
@@ -432,8 +447,14 @@ export default function HomeMapClient() {
     })();
   }, []);
 
-  // ── Auto-load discover restaurants on mount ───────────────────────────────
+  // ── Auto-load discover restaurants on mount (once per session) ────────────
   useEffect(() => {
+    // Already searched this session? State was seeded from the cache at init
+    // (see useState initializers); just restore the "show all" ref and skip the fetch.
+    if (discoverCache) {
+      discoverAllRef.current = discoverCache.list;
+      return;
+    }
     navigator.geolocation.getCurrentPosition(
       async pos => {
         const { latitude: lat, longitude: lng } = pos.coords;
@@ -444,6 +465,8 @@ export default function HomeMapClient() {
           ).then(r => r.json());
           setDiscoverList(data);
           discoverAllRef.current = data;
+          setUserLocation({ lat, lng });
+          discoverCache = { location: { lat, lng }, list: data }; // cache for the session
           // Auto-peek discover sheet if no result is showing yet
           setSnap(prev => prev === 'hidden' ? 'peek' : prev);
         } catch { /* ignore */ }
@@ -452,7 +475,6 @@ export default function HomeMapClient() {
       () => { /* no location — keep sheet hidden */ },
       { timeout: 8000 },
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Save / unsave ─────────────────────────────────────────────────────────
@@ -718,7 +740,7 @@ export default function HomeMapClient() {
               {isDiscover && (
                 <button
                   onPointerDown={e => e.stopPropagation()}
-                  onClick={() => { setSelectedId(null); setSnap('peek'); }}
+                  onClick={() => setSelectedId(null)}
                   style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px', fontFamily: 'inherit' }}>
                   <IconArrowLeft size={17} color="#E24B4A" />
                   <span style={{ fontSize: 12, fontWeight: 600, color: '#E24B4A' }}>Back to list</span>
@@ -811,7 +833,7 @@ export default function HomeMapClient() {
                   const active = selectedId === pinId;
                   return (
                     <div key={r.placeId}
-                      onClick={() => { setSelectedId(pinId); setSnap('peek'); }}
+                      onClick={() => setSelectedId(pinId)}
                       style={{ display: 'flex', borderRadius: 14, overflow: 'hidden', border: `1.5px solid ${active ? '#E24B4A' : '#F0EFEC'}`, cursor: 'pointer', background: active ? '#FFF5F5' : 'white', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', transition: 'all 0.15s' }}>
 
                       {/* Photo — full left column */}
@@ -856,310 +878,24 @@ export default function HomeMapClient() {
           </div>
         )}
 
-        {/* Scrollable expanded content */}
+        {/* Selected restaurant — tabbed detail */}
         {selectedPin && (
-          <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 24 }}>
-            <div style={{ height: 1, background: '#F0EFEC', marginBottom: 12 }} />
-
-            {/* ── Closed banner / No-tables button ── */}
-            {details && (
-              <div style={{ paddingLeft: 16, paddingRight: 16, marginBottom: 12 }}>
-                {details.openNow === false ? (
-                  <div style={{ background: '#FFF3E0', borderRadius: 10, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 17 }}>🔒</span>
-                    <div style={{ flex: 1 }}>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: '#C05000', margin: '0 0 1px' }}>Closed right now</p>
-                      <p style={{ fontSize: 10, color: '#888780', margin: 0 }}>
-                        {details.hoursToday ? `Today: ${details.hoursToday}` : 'Check back later'}
-                      </p>
-                    </div>
-                    <button onClick={() => loadSuggestions(selectedPin)}
-                      style={{ background: '#E85D04', border: 'none', borderRadius: 8, padding: '5px 10px', fontSize: 10, fontWeight: 600, color: 'white', cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
-                      Alternatives
-                    </button>
-                  </div>
-                ) : details.openNow === true && !showSuggestions ? (
-                  <button onClick={() => loadSuggestions(selectedPin)}
-                    style={{ width: '100%', background: 'none', border: '1px dashed #D3D1C7', borderRadius: 10, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    <span style={{ fontSize: 16 }}>🪑</span>
-                    <span style={{ fontSize: 10, color: '#888780' }}>No tables available? Find similar spots nearby</span>
-                    <span style={{ fontSize: 13, color: '#B0AFA9', marginLeft: 'auto' }}>→</span>
-                  </button>
-                ) : null}
-              </div>
-            )}
-
-            {/* ── Nearby suggestions ── */}
-            {showSuggestions && (
-              <div style={{ paddingLeft: 16, paddingRight: 16, marginBottom: 14 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
-                    Similar spots nearby
-                  </p>
-                  <button onClick={() => { setShowSuggestions(false); setSuggestions([]); }}
-                    style={{ background: 'none', border: 'none', fontSize: 14, color: '#B0AFA9', cursor: 'pointer', padding: 0 }}>×</button>
-                </div>
-
-                {suggestionsLoading ? (
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    {[0,1,2].map(i => (
-                      <div key={i} style={{ flex: 1, height: 72, borderRadius: 10, background: '#F7F6F3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <IconLoader2 size={17} color="#D3D1C7" style={{ animation: 'spin 0.8s linear infinite' }} />
-                      </div>
-                    ))}
-                  </div>
-                ) : suggestions.length === 0 ? (
-                  <p style={{ fontSize: 10, color: '#B0AFA9', textAlign: 'center', padding: '12px 0' }}>No similar places found within 1.5 km</p>
-                ) : (
-                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16 }}>
-                    {suggestions.map(sug => (
-                      <button key={sug.id}
-                        onClick={() => {
-                          setResultPins(prev => [...prev.filter(p => !p.id.startsWith('sug-')), sug]);
-                          setSelectedId(sug.id);
-                          setSnap('peek');
-                        }}
-                        style={{ flexShrink: 0, width: 130, background: 'white', border: '1.5px solid #E8E7E3', borderRadius: 10, padding: '8px 10px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
-                        <p style={{ fontSize: 12, fontWeight: 600, color: '#2C2C2A', margin: '0 0 3px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                          {sug.name}
-                        </p>
-                        <p style={{ fontSize: 10, color: '#888780', margin: '0 0 5px' }}>
-                          {sug.cuisineType || 'Restaurant'}
-                        </p>
-                        <span style={{ fontSize: 9, background: '#FFF0F0', color: 'var(--tomato)', borderRadius: 99, padding: '2px 7px', fontWeight: 600 }}>
-                          View →
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* ── Photos ── */}
-            {detailsLoading && !details && (
-              <div style={{ display: 'flex', gap: 8, paddingLeft: 16, paddingRight: 16, marginBottom: 12 }}>
-                {[1,2,3,4].map(i => (
-                  <div key={i} style={{ width: 88, height: 80, borderRadius: 10, background: '#F7F6F3', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <IconLoader2 size={18} color="#D3D1C7" style={{ animation: 'spin 0.8s linear infinite' }} />
-                  </div>
-                ))}
-              </div>
-            )}
-            {(details?.photoUrls ?? []).length > 0 && (
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingLeft: 16, paddingRight: 16, marginBottom: 14, scrollbarWidth: 'none' }}>
-                {details!.photoUrls.map((u, i) => (
-                  <img key={i} src={u} alt="" style={{ width: 100, height: 88, objectFit: 'cover', borderRadius: 10, flexShrink: 0, display: 'block' }} />
-                ))}
-              </div>
-            )}
-
-            {/* ── Quick actions ── */}
-            {details && (details.phone || details.website) && (
-              <div style={{ display: 'flex', gap: 8, paddingLeft: 16, paddingRight: 16, marginBottom: 14 }}>
-                {details.phone && (
-                  <a href={`tel:${details.phone}`}
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, padding: '9px 0', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.08)', textDecoration: 'none', fontSize: 12, fontWeight: 600, color: '#2C2C2A' }}>
-                    📞 Call
-                  </a>
-                )}
-                {details.website && (
-                  <a href={details.website} target="_blank" rel="noopener noreferrer"
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, padding: '9px 0', background: '#F7F6F3', border: '1px solid rgba(0,0,0,0.08)', textDecoration: 'none', fontSize: 12, fontWeight: 600, color: '#2C2C2A' }}>
-                    🌐 Website
-                  </a>
-                )}
-                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedPin.name} ${selectedPin.address}`)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, padding: '9px 0', background: 'var(--tomato)', textDecoration: 'none', fontSize: 12, fontWeight: 600, color: 'white' }}>
-                  🗺 Directions
-                </a>
-              </div>
-            )}
-
-            <div style={{ paddingLeft: 16, paddingRight: 16 }}>
-
-              {/* ── Summary ── */}
-              {details?.summary && (
-                <div style={{ background: '#F7F6F3', borderRadius: 10, padding: '10px 12px', marginBottom: 12 }}>
-                  <p style={{ fontSize: 12, color: '#5F5E5A', margin: 0, lineHeight: 1.6, fontStyle: 'italic' }}>
-                    &ldquo;{details.summary}&rdquo;
-                  </p>
-                </div>
-              )}
-
-              {/* ── Info rows ── */}
-              {(details?.address ?? selectedPin.address) && (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 8 }}>
-                  <span style={{ fontSize: 18 }}>📍</span>
-                  <p style={{ fontSize: 12, color: '#5F5E5A', margin: 0, lineHeight: 1.5 }}>{details?.address ?? selectedPin.address}</p>
-                </div>
-              )}
-              {details?.hoursToday && (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 18 }}>🕐</span>
-                  <p style={{ fontSize: 12, color: '#5F5E5A', margin: 0 }}>{details.hoursToday}</p>
-                </div>
-              )}
-              {details?.distance && details?.duration && (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 18 }}>🚗</span>
-                  <p style={{ fontSize: 12, color: '#5F5E5A', margin: 0 }}>{details.distance} away · {details.duration} by car</p>
-                </div>
-              )}
-              {details?.phone && (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 18 }}>📞</span>
-                  <a href={`tel:${details.phone}`} style={{ fontSize: 12, color: 'var(--tomato)', margin: 0, textDecoration: 'none', fontWeight: 500 }}>{details.phone}</a>
-                </div>
-              )}
-
-              {/* ── Reviews ── */}
-              {(details?.topReviews ?? []).length > 0 && (
-                <div style={{ marginTop: 12, marginBottom: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
-                      What people say
-                    </p>
-                    <span style={{ fontSize: 9, color: '#B0AFA9' }}>Google Reviews</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {details!.topReviews.map((review, i) => {
-                      const positive = review.rating >= 4;
-                      const accent   = positive ? 'var(--tomato)' : review.rating <= 2 ? '#E24B4A' : '#888780';
-                      const bg       = positive ? '#F0FAF5' : review.rating <= 2 ? '#FEF2F2' : '#F7F6F3';
-                      return (
-                        <div key={i} style={{ background: bg, borderRadius: 10, padding: '9px 12px', borderLeft: `3px solid ${accent}` }}>
-                          {/* Stars + author row */}
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                            <div style={{ display: 'flex', gap: 1 }}>
-                              {[1,2,3,4,5].map(s => (
-                                <span key={s} style={{ fontSize: 10, color: s <= review.rating ? '#F5A623' : '#D3D1C7' }}>★</span>
-                              ))}
-                            </div>
-                            <span style={{ fontSize: 9, color: '#B0AFA9', fontWeight: 500 }}>{review.author}</span>
-                          </div>
-                          <p style={{ fontSize: 11, color: '#5F5E5A', margin: 0, lineHeight: 1.6,
-                            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                            &ldquo;{review.text}&rdquo;
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div style={{ height: 1, background: '#F0EFEC', margin: '14px 0' }} />
-
-              {/* ── Spotted in video ── */}
-              {selectedPin.menuItems && selectedPin.menuItems.length > 0 && (
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Spotted in video</p>
-                    {selectedPin.confidence != null && (
-                      <span style={{ fontSize: 9, fontWeight: 700, color: 'white',
-                        background: selectedPin.confidence >= 80 ? 'var(--tomato)' : selectedPin.confidence >= 60 ? '#E8A020' : '#E24B4A',
-                        borderRadius: 99, padding: '2px 6px' }}>
-                        {selectedPin.confidence}% match
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {selectedPin.menuItems.map((item, i) => (
-                      <span key={i} style={{ fontSize: 12, color: '#5F5E5A', background: '#F7F6F3', borderRadius: 99, padding: '4px 10px', border: '1px solid #E8E7E4' }}>
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                  <div style={{ height: 1, background: '#F0EFEC', marginTop: 14 }} />
-                </div>
-              )}
-
-              {/* ── Video Reviews ── */}
-              <p style={{ fontSize: 12, fontWeight: 600, color: '#888780', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10, marginTop: 14 }}>
-                Video Reviews
-              </p>
-
-              {/* Loading skeletons */}
-              {detailsLoading && !(details?.tiktoks?.length) && (
-                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                  {[0,1,2].map(i => (
-                    <div key={i} style={{ width: 120, height: 96, borderRadius: 12, background: '#F7F6F3', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <IconLoader2 size={18} color="#D3D1C7" style={{ animation: 'spin 0.8s linear infinite' }} />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Video cards */}
-              {(details?.tiktoks ?? []).length > 0 && (
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none', marginBottom: 14, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16 }}>
-                  {details!.tiktoks.slice(0, 3).map((vid, i) => {
-                    const p = vid.platform ?? 'tiktok';
-                    const Icon = p === 'instagram' ? IconBrandInstagram
-                               : p === 'facebook'  ? IconBrandFacebook
-                               : p === 'youtube'   ? IconBrandYoutube
-                               : IconBrandTiktok;
-                    return (
-                      <a key={i} href={vid.videoUrl} target="_blank" rel="noopener noreferrer"
-                        style={{ flexShrink: 0, width: 120, height: 96, borderRadius: 12, overflow: 'hidden', display: 'block', textDecoration: 'none', background: '#111', position: 'relative' }}>
-                        {vid.thumbnail
-                          ? <img src={vid.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Icon size={29} color="rgba(255,255,255,0.25)" />
-                            </div>}
-                        {/* Gradient overlay */}
-                        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 55%)' }} />
-                        {/* Play button */}
-                        <div style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <IconPlayerPlay size={14} color="white" fill="white" />
-                          </div>
-                        </div>
-                        {/* Bottom text */}
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '4px 7px' }}>
-                          {vid.author && <p style={{ fontSize: 8, color: 'rgba(255,255,255,0.75)', margin: '0 0 1px', fontWeight: 600 }}>@{vid.author}</p>}
-                          {vid.title && <p style={{ fontSize: 9, color: 'white', margin: 0, lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{vid.title}</p>}
-                        </div>
-                        {/* Platform badge */}
-                        <div style={{ position: 'absolute', top: 5, right: 5, background: 'rgba(0,0,0,0.5)', borderRadius: 99, padding: '2px 5px' }}>
-                          <Icon size={10} color="white" />
-                        </div>
-                      </a>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Empty state — search buttons */}
-              {!detailsLoading && details && !details.tiktoks?.length && (
-                <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
-                  {([
-                    { Icon: IconBrandTiktok,    label: 'TikTok',    bg: '#010101', href: `https://www.tiktok.com/search?q=${encodeURIComponent(selectedPin.name)}` },
-                    { Icon: IconBrandInstagram, label: 'Instagram', bg: '#E1306C', href: `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(selectedPin.name)}` },
-                    { Icon: IconBrandFacebook,  label: 'Facebook',  bg: '#1877F2', href: `https://www.facebook.com/search/videos/?q=${encodeURIComponent(selectedPin.name)}` },
-                  ] as { Icon: React.ElementType; label: string; bg: string; href: string }[]).map(({ Icon, label, bg, href }) => (
-                    <a key={label} href={href} target="_blank" rel="noopener noreferrer"
-                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 10, padding: '9px 0', background: bg, color: 'white', textDecoration: 'none', fontSize: 10, fontWeight: 600, fontFamily: 'inherit' }}>
-                      <Icon size={16} />
-                      {label}
-                    </a>
-                  ))}
-                </div>
-              )}
-
-              {/* ── Directions (fallback if no phone/website) ── */}
-              {details && !details.phone && !details.website && (
-                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedPin.name} ${selectedPin.address}`)}`}
-                  target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 12, padding: '11px 0', background: 'var(--tomato)', color: 'white', fontSize: 13, fontWeight: 600, textDecoration: 'none', marginTop: 4 }}>
-                  <IconMapPin size={17} />
-                  Get Directions
-                </a>
-              )}
-            </div>
-          </div>
+          <RestaurantDetailTabs
+            key={selectedPin.id}
+            pin={selectedPin}
+            details={details}
+            detailsLoading={detailsLoading}
+            userLocation={userLocation}
+            suggestions={suggestions}
+            suggestionsLoading={suggestionsLoading}
+            loadSuggestions={loadSuggestions}
+            onSelectSuggestion={(sug) => {
+              setResultPins(prev => [...prev.filter(p => !p.id.startsWith('sug-')), sug]);
+              setSelectedId(sug.id);
+              setSnap('peek');
+            }}
+            showToast={showToast}
+          />
         )}
       </motion.div>
 

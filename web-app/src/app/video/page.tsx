@@ -51,7 +51,7 @@ export default function VideoPage() {
           .eq('user_id', user.id)
           .eq('video_url', trimmed)
           .limit(1)
-          .single();
+          .maybeSingle();
         if (data?.lat && data?.lng) {
           sessionStorage.setItem('foodmap_navigate', JSON.stringify({
             id: `cached-${data.id}`, name: data.restaurant_name,

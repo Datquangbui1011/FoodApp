@@ -16,8 +16,8 @@ const tabs = [
   { label: 'Me',          href: '/profile', icon: IconUser     },
 ];
 
-// Routes without a tab bar (auth/onboarding/transient flows).
-const HIDDEN_ON = ['/landing', '/auth', '/processing', '/legal'];
+// Routes without a tab bar (auth/onboarding/transient flows + drill-in views).
+const HIDDEN_ON = ['/landing', '/auth', '/processing', '/legal', '/map'];
 
 export default function TabBar() {
   const pathname = usePathname();

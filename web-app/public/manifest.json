@@ -2,7 +2,7 @@
   "name": "Foody",
   "short_name": "Foody",
   "description": "Discover restaurants from food videos",
-  "start_url": "/landing",
+  "start_url": "/",
   "display": "standalone",
   "background_color": "#191010",
   "theme_color": "#191010",

@@ -12,11 +12,13 @@ export interface TikTokVideo {
 }
 
 export interface PlaceDetails {
+  placeId: string | null;          // Google place_id — stable key for in-app reviews
   photoUrls: string[];
   rating: number | null;
   ratingCount: number | null;
   openNow: boolean | null;
   hoursToday: string | null;
+  hours: string[] | null;          // full weekday_text, one line per day
   address: string | null;
   distance: string | null;
   duration: string | null;
@@ -26,7 +28,7 @@ export interface PlaceDetails {
   phone: string | null;
   website: string | null;
   summary: string | null;          // editorial_summary or top review snippet
-  topReviews: { text: string; rating: number; author: string }[];  // balanced good + bad
+  topReviews: { text: string; rating: number; author: string }[];  // up to 5 Google reviews
   tiktoks: TikTokVideo[];          // up to 3 videos
 }
 
@@ -38,10 +40,13 @@ export async function GET(req: NextRequest): Promise<NextResponse<PlaceDetails>>
   const userLat  = p.get('userLat')  ?? '';
   const userLng  = p.get('userLng')  ?? '';
   const videoUrl = p.get('videoUrl') ?? '';
+  const address  = p.get('address')  ?? '';
+  const location = cityFromAddress(address);
 
   const empty: PlaceDetails = {
+    placeId: null,
     photoUrls: [], rating: null, ratingCount: null,
-    openNow: null, hoursToday: null, address: null,
+    openNow: null, hoursToday: null, hours: null, address: null,
     distance: null, duration: null, tiktok: null,
     priceLevel: null, phone: null, website: null,
     summary: null, topReviews: [], tiktoks: [],
@@ -50,19 +55,19 @@ export async function GET(req: NextRequest): Promise<NextResponse<PlaceDetails>>
 
   // Step 1: Text Search → placeId + basic fields
   const place = await textSearch(name, lat, lng);
-  if (!place) return NextResponse.json({ ...empty, tiktoks: await getTikToks(name, videoUrl) });
+  if (!place) return NextResponse.json({ ...empty, tiktoks: await getTikToks(name, videoUrl, location) });
 
   // Step 2: Place Details + Distance Matrix + TikToks — in parallel
   const [details, distResult, tiktoks] = await Promise.all([
     placeDetails(place.placeId),
     getDistance(userLat, userLng, lat, lng),
-    getTikToks(name, videoUrl),
+    getTikToks(name, videoUrl, location),
   ]);
 
-  // Photos — combine Text Search + Details, deduplicate, up to 4
+  // Photos — combine Text Search + Details, deduplicate, up to 10 (Google's max)
   const allRefs = [...(place.photoRefs ?? []), ...(details.photoRefs ?? [])]
     .filter((r, i, a) => a.indexOf(r) === i)
-    .slice(0, 4);
+    .slice(0, 10);
   const photoUrls = allRefs.map(ref => `/api/photo?ref=${encodeURIComponent(ref)}`);
 
   const dayIndex = (new Date().getDay() + 6) % 7;
@@ -74,11 +79,13 @@ export async function GET(req: NextRequest): Promise<NextResponse<PlaceDetails>>
     ?? (firstReview ? firstReview.slice(0, 120) + (firstReview.length > 120 ? '…' : '') : null);
 
   return NextResponse.json({
+    placeId:     place.placeId,
     photoUrls,
     rating:      place.rating      ?? null,
     ratingCount: place.ratingCount ?? null,
     openNow:     place.openNow     ?? details.openNow ?? null,
     hoursToday,
+    hours:       details.weekdayText ?? null,
     address:     details.address   ?? null,
     distance:    distResult.distance,
     duration:    distResult.duration,
@@ -127,7 +134,7 @@ async function textSearch(name: string, lat: string, lng: string): Promise<TextR
       ratingCount: r.user_ratings_total,
       openNow:     r.opening_hours?.open_now,
       priceLevel:  r.price_level,
-      photoRefs:   (r.photos ?? []).slice(0, 4).map(p => p.photo_reference),
+      photoRefs:   (r.photos ?? []).slice(0, 10).map(p => p.photo_reference),
     };
   } catch { return null; }
 }
@@ -150,14 +157,8 @@ interface DetailsResult {
 function fairReviews(raw: { text?: string; rating?: number; author_name?: string }[]): Review[] {
   const valid = raw.filter(r => r.text && r.text.length > 20 && r.rating != null) as
     { text: string; rating: number; author_name?: string }[];
-  const positive = valid.filter(r => r.rating >= 4);
-  const negative = valid.filter(r => r.rating <= 3);
-  // Take up to 2 positive + 2 negative for a balanced view
-  const mixed = [
-    ...positive.slice(0, 2),
-    ...negative.slice(0, 2),
-  ].slice(0, 4);
-  return mixed.map(r => ({ text: r.text, rating: r.rating, author: r.author_name ?? 'Anonymous' }));
+  // Google returns at most 5 reviews — surface them all, in the order given.
+  return valid.slice(0, 5).map(r => ({ text: r.text, rating: r.rating, author: r.author_name ?? 'Anonymous' }));
 }
 
 async function placeDetails(placeId: string): Promise<DetailsResult> {
@@ -181,7 +182,7 @@ async function placeDetails(placeId: string): Promise<DetailsResult> {
     };
     const r = data.result;
     return {
-      photoRefs:   (r?.photos ?? []).slice(0, 4).map(p => p.photo_reference),
+      photoRefs:   (r?.photos ?? []).slice(0, 10).map(p => p.photo_reference),
       weekdayText: r?.opening_hours?.weekday_text ?? null,
       openNow:     r?.opening_hours?.open_now ?? null,
       address:     r?.formatted_address ?? null,
@@ -229,13 +230,36 @@ function urlPlatform(url: string): Platform | null {
   return null;
 }
 
-// Fetch up to `num` videos for a restaurant from one social platform via CSE
-async function cseVideos(name: string, site: string, num: number): Promise<TikTokVideo[]> {
+// Pull a city/locality out of a formatted address for the video search query.
+// Handles "street, City, ST 12345, Country", "City, ST", and bare "City".
+function cityFromAddress(address: string): string {
+  const parts = address.split(',').map(s => s.trim()).filter(Boolean);
+  if (parts.length >= 4) return parts[parts.length - 3]; // street, CITY, state zip, country
+  if (parts.length >= 2) return parts[parts.length - 2]; // street/CITY, state
+  return parts[0] ?? '';
+}
+
+// Significant words from the restaurant name, used to validate a video matches it.
+function nameTokens(name: string): string[] {
+  const stop = new Set(['the', 'and', 'restaurant', 'cafe', 'bar', 'grill', 'kitchen', 'house', 'co', 'llc', 'inc', 'food', 'spirits']);
+  return name.toLowerCase().replace(/[^a-z0-9 ]/g, ' ').split(/\s+/)
+    .filter(t => t.length >= 3 && !stop.has(t));
+}
+
+// A video is "the correct one" if its title mentions a significant name token.
+function titleMatchesName(title: string, tokens: string[]): boolean {
+  if (tokens.length === 0) return true;
+  const t = title.toLowerCase();
+  return tokens.some(tok => t.includes(tok));
+}
+
+// Fetch up to `num` videos from one social platform via CSE for a free-text query.
+async function cseVideos(query: string, site: string, num: number): Promise<TikTokVideo[]> {
   if (!KEY || !CSE_ID) return [];
   try {
     const res = await fetch(
       `https://www.googleapis.com/customsearch/v1?key=${KEY}&cx=${CSE_ID}` +
-      `&q=${encodeURIComponent(name + ' food')}&siteSearch=${site}&num=${num}`,
+      `&q=${encodeURIComponent(query)}&siteSearch=${site}&num=${num}`,
       { next: { revalidate: 3600 } },
     );
     const data = await res.json() as {
@@ -271,15 +295,17 @@ async function tiktokOEmbed(url: string): Promise<TikTokVideo | null> {
   } catch { return null; }
 }
 
-async function getTikToks(name: string, knownUrl: string): Promise<TikTokVideo[]> {
-  const seen  = new Set<string>();
+async function getTikToks(name: string, knownUrl: string, location: string): Promise<TikTokVideo[]> {
+  const seen = new Set<string>();
   const out: TikTokVideo[] = [];
+  const tokens = nameTokens(name);
+  const query  = location ? `${name} ${location}` : name;
 
   function add(v: TikTokVideo) {
-    if (out.length < 3 && !seen.has(v.videoUrl)) { seen.add(v.videoUrl); out.push(v); }
+    if (out.length < 3 && v.videoUrl && !seen.has(v.videoUrl)) { seen.add(v.videoUrl); out.push(v); }
   }
 
-  // 1. Known URL from the processed video — put it first
+  // 1. Known URL from the processed video — most relevant, goes first.
   if (knownUrl) {
     const p = urlPlatform(knownUrl);
     if (p === 'tiktok') {
@@ -290,33 +316,29 @@ async function getTikToks(name: string, knownUrl: string): Promise<TikTokVideo[]
     }
   }
 
-  if (out.length >= 3) return out;
+  // 2. Search TikTok for "<name> <city>", then keep only videos whose title
+  //    matches the restaurant name. Fall back to the raw results if the strict
+  //    filter leaves nothing (the query itself already constrains relevance).
+  const rawTT   = await cseVideos(query, 'tiktok.com', 8);
+  const matched = rawTT.filter(v => titleMatchesName(v.title, tokens));
+  const pool    = matched.length ? matched : rawTT;
 
-  // 2. Search TikTok, Instagram, Facebook in parallel — take 1 from each for variety
-  const [tt, ig, fb] = await Promise.all([
-    cseVideos(name, 'tiktok.com',   3),
-    cseVideos(name, 'instagram.com', 3),
-    cseVideos(name, 'facebook.com',  3),
-  ]);
+  for (const v of pool) {
+    if (out.length >= 3) break;
+    // Enrich to a canonical /video/<id> URL + real thumbnail/author (needed to embed).
+    const needsEnrich = !v.thumbnail || !v.videoUrl.includes('/video/');
+    const enriched = needsEnrich ? await tiktokOEmbed(v.videoUrl) : null;
+    add(enriched ?? v);
+  }
 
-  // Round-robin: TikTok → Instagram → Facebook → TikTok …
-  const pool = [tt, ig, fb];
-  let i = 0;
-  while (out.length < 3) {
-    let added = false;
-    for (const bucket of pool) {
-      if (out.length >= 3) break;
-      const v = bucket[i];
-      if (!v) continue;
-      if (v.platform === 'tiktok' && !v.thumbnail) {
-        const enriched = await tiktokOEmbed(v.videoUrl);
-        if (enriched) { add(enriched); added = true; }
-      } else {
-        add(v); added = true;
-      }
-    }
-    i++;
-    if (!added) break;
+  // 3. Only if no TikToks were found at all, fall back to IG/FB so the section
+  //    isn't empty (these link out rather than embed).
+  if (out.length === 0) {
+    const [ig, fb] = await Promise.all([
+      cseVideos(query, 'instagram.com', 3),
+      cseVideos(query, 'facebook.com', 3),
+    ]);
+    [...ig, ...fb].filter(v => titleMatchesName(v.title, tokens)).forEach(add);
   }
 
   return out;
