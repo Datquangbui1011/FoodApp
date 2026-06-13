@@ -83,7 +83,8 @@ export interface VisionResult {
 async function runEasyOcr(filePaths: string[]): Promise<string[]> {
   return new Promise((resolve) => {
     const scriptPath = path.join(__dirname, '..', '..', 'ocr.py');
-    const py = spawn('/opt/homebrew/bin/python3', [scriptPath]);
+    const pythonBin = process.env.PYTHON_PATH ?? (process.platform === 'darwin' ? '/opt/homebrew/bin/python3' : 'python3');
+    const py = spawn(pythonBin, [scriptPath]);
     let stdout = '';
 
     py.stdin.write(JSON.stringify(filePaths));

@@ -1,4 +1,4 @@
-#!/opt/homebrew/bin/python3
+#!/usr/bin/env python3
 """
 EasyOCR runner for FoodApp processing pipeline.
 Reads a JSON array of image file paths from stdin.
