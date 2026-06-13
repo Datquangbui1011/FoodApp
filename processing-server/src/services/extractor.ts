@@ -18,28 +18,24 @@ export async function extractAudio(videoPath: string, outputDir: string): Promis
   });
 }
 
-export async function extractFrames(videoPath: string, outputDir: string): Promise<{ timestamp: number, base64: string }[]> {
+export async function extractFrames(videoPath: string, outputDir: string): Promise<{ timestamp: number, base64: string, filePath: string }[]> {
   return new Promise((resolve, reject) => {
     const basename = path.basename(videoPath, path.extname(videoPath));
     const frameOutputDir = path.join(outputDir, `${basename}_frames`);
-    
+
     if (!fs.existsSync(frameOutputDir)) {
       fs.mkdirSync(frameOutputDir, { recursive: true });
     }
 
-    // Get video duration to calculate fps for max 20 frames
+    // Max 8 frames — enough for OCR without burning tokens
     ffmpeg.ffprobe(videoPath, (err, metadata) => {
       if (err) return reject(new Error(`ffprobe error: ${err.message}`));
-      
-      const duration = metadata.format.duration || 15; // default 15s if unknown
-      // We want max 20 frames.
-      // So we extract a frame every (duration / 20) seconds, or at most 1 frame per second.
-      const interval = Math.max(1, duration / 20);
-      
+
+      const duration = metadata.format.duration || 15;
+      const interval = Math.max(1, duration / 8);
+
       ffmpeg(videoPath)
-        .outputOptions([
-          `-vf fps=1/${interval},scale=512:-1`
-        ])
+        .outputOptions([`-vf fps=1/${interval},scale=512:-1`])
         .output(path.join(frameOutputDir, 'frame-%03d.jpg'))
         .on('end', () => {
           try {
@@ -49,7 +45,8 @@ export async function extractFrames(videoPath: string, outputDir: string): Promi
               const base64 = fs.readFileSync(filePath, { encoding: 'base64' });
               return {
                 timestamp: index * interval,
-                base64: `data:image/jpeg;base64,${base64}`
+                base64: `data:image/jpeg;base64,${base64}`,
+                filePath,
               };
             });
             resolve(frames);

@@ -59,6 +59,27 @@ type SheetSnap = 'hidden' | 'peek' | 'expanded';
 // it survives the component unmounting/remounting on client navigation.
 let discoverCache: { location: { lat: number; lng: number }; list: NearbyRestaurant[] } | null = null;
 
+// Consume a one-shot sessionStorage payload (a search result, a pin to open, …).
+// React StrictMode (on in dev) mounts components twice: mount → unmount → mount.
+// A naive "read then removeItem" in a mount effect deletes the value on the first
+// mount, so the second mount — the one whose render is actually shown — finds
+// nothing. We bridge that by briefly caching the raw value at module scope; the
+// 3s window covers the StrictMode remount but expires before a later navigation,
+// so returning to the tab doesn't resurrect a stale result.
+const _consumed: Record<string, { raw: string; at: number }> = {};
+function consumeSession(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  const fresh = sessionStorage.getItem(key);
+  if (fresh) {
+    sessionStorage.removeItem(key);
+    _consumed[key] = { raw: fresh, at: Date.now() };
+    return fresh;
+  }
+  const cached = _consumed[key];
+  if (cached && Date.now() - cached.at < 3000) return cached.raw;
+  return null;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 // Numeric TikTok video id (for the embed player), or null if the URL isn't a
 // canonical /video/<id> link.
@@ -166,9 +187,8 @@ export default function HomeMapClient() {
   // Read result from sessionStorage after processing redirects back here
   useEffect(() => {
     async function init() {
-      const raw = sessionStorage.getItem('foodmap_result');
+      const raw = consumeSession('foodmap_result');
       if (!raw) return;
-      sessionStorage.removeItem('foodmap_result');
       try {
         const data = JSON.parse(raw) as {
           allPlaces?: { name: string; confidence: number; menuItems: string[]; cuisineType: string; places: { name?: string; lat?: number; lng?: number; address?: string; rating?: number }[] }[];
@@ -188,7 +208,8 @@ export default function HomeMapClient() {
             if (!place?.lat || !place?.lng) continue;
             pins.push({
               id: `result-${ts}-${i}`,
-              name: place.name ?? entry.name,
+              // Prefer the AI's English name over the localized OSM name (e.g. "Baan Tepa" not "บ้านเตปา")
+              name: entry.name ?? place.name,
               lat: place.lat,
               lng: place.lng,
               cuisineType: entry.cuisineType ?? '',
@@ -206,7 +227,7 @@ export default function HomeMapClient() {
             const inference = data.inference ?? {};
             pins.push({
               id: `result-${ts}-0`,
-              name: place.name ?? inference.topPick?.name ?? 'Unknown',
+              name: inference.topPick?.name ?? place.name ?? 'Unknown',
               lat: place.lat,
               lng: place.lng,
               cuisineType: inference.cuisineType ?? '',
@@ -305,9 +326,8 @@ export default function HomeMapClient() {
   // Navigate to a pin from the Saved page — open its detail sheet expanded.
   useEffect(() => {
     function nav() {
-      const raw = sessionStorage.getItem('foodmap_navigate');
+      const raw = consumeSession('foodmap_navigate');
       if (!raw) return;
-      sessionStorage.removeItem('foodmap_navigate');
       try {
         const pin: MapPin = JSON.parse(raw);
         pin.id = `nav-${Date.now()}`;
@@ -322,9 +342,8 @@ export default function HomeMapClient() {
   // Reopen the detail sheet after returning from the /map page.
   useEffect(() => {
     function reopen() {
-      const raw = sessionStorage.getItem('foodmap_reopen');
+      const raw = consumeSession('foodmap_reopen');
       if (!raw) return;
-      sessionStorage.removeItem('foodmap_reopen');
       try {
         const pin: MapPin = JSON.parse(raw);
         if (!pin.id) pin.id = `reopen-${Date.now()}`;

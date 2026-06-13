@@ -1,7 +1,8 @@
 import Groq from 'groq-sdk';
 import fs from 'fs';
+import path from 'path';
+import { spawn } from 'child_process';
 
-const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
 const TEXT_MODEL = 'llama-3.3-70b-versatile';
 
 function extractFirstJSON(text: string): string {
@@ -31,14 +32,19 @@ function getClient(): Groq {
   return new Groq({ apiKey });
 }
 
+// Only wait-and-retry for short per-minute (TPM) backoffs. A long retry-after
+// means we hit the per-day (TPD) quota — retrying is pointless, so fail fast
+// and let the caller surface a clear "rate limited" message.
+const MAX_RETRY_WAIT_S = 15;
+
 async function withRetry<T>(fn: () => Promise<T>, retries = 2): Promise<T> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       return await fn();
     } catch (err: any) {
       const is429 = err?.status === 429;
-      if (is429 && attempt < retries) {
-        const retryAfter = parseInt(err?.headers?.['retry-after'] ?? '10');
+      const retryAfter = parseInt(err?.headers?.['retry-after'] ?? '10');
+      if (is429 && attempt < retries && retryAfter <= MAX_RETRY_WAIT_S) {
         const delay = (retryAfter + 2) * 1000;
         console.log(`Groq 429 — retrying in ${retryAfter + 2}s (attempt ${attempt + 1}/${retries})`);
         await new Promise(r => setTimeout(r, delay));
@@ -70,83 +76,56 @@ export interface VisionResult {
   cuisineType: string;
   confidence: number;
   _allFound?: { name: string; city: string; menuItems: string[]; cuisineType: string }[];
+  _rawOcr?: string[];
 }
 
-const OCR_PROMPT = `These are frames from a food/restaurant video (TikTok, Instagram Reel, YouTube).
+// Run EasyOCR via Python subprocess — zero API cost, no rate limits
+async function runEasyOcr(filePaths: string[]): Promise<string[]> {
+  return new Promise((resolve) => {
+    const scriptPath = path.join(__dirname, '..', '..', 'ocr.py');
+    const py = spawn('/opt/homebrew/bin/python3', [scriptPath]);
+    let stdout = '';
 
-Extract ALL restaurant or café names visible as text in these frames. Look for:
-- Text overlays, title cards, captions burned into the video
-- Storefront signs, logos, banners
-- Location tags, address text, any on-screen text naming a place
+    py.stdin.write(JSON.stringify(filePaths));
+    py.stdin.end();
+    py.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
+    py.stderr.on('data', (d: Buffer) => { console.error('[EasyOCR]', d.toString().trim()); });
 
-List EVERY restaurant name you can read — there may be 1 or several across these frames.
-Also note the city/location if visible, any menu items, and cuisine type.
-
-Output strictly as JSON, no markdown:
-{"restaurants":[{"name":"...","city":"...","menuItems":[],"cuisineType":"..."}],"city":"..."}`;
-
-async function runOcrBatch(
-  client: Groq,
-  batch: { timestamp: number; base64: string }[],
-): Promise<{ name: string; city: string; menuItems: string[]; cuisineType: string }[]> {
-  const imageContent = batch.map(f => ({
-    type: 'image_url' as const,
-    image_url: { url: f.base64.startsWith('data:') ? f.base64 : `data:image/jpeg;base64,${f.base64}` },
-  }));
-
-  return withRetry(async () => {
-    const response = await client.chat.completions.create({
-      model: VISION_MODEL,
-      messages: [{ role: 'user', content: [{ type: 'text', text: OCR_PROMPT }, ...imageContent] }],
-      temperature: 0.1,
-      max_tokens: 600,
+    py.on('close', () => {
+      try {
+        const lines: string[] = JSON.parse(stdout);
+        resolve(lines.filter(l => l.trim().length > 1));
+      } catch {
+        resolve([]);
+      }
     });
-    const raw = response.choices[0]?.message?.content ?? '';
-    try {
-      const parsed = JSON.parse(extractFirstJSON(raw)) as {
-        restaurants?: { name: string; city: string; menuItems?: string[]; cuisineType?: string }[];
-      };
-      return (parsed.restaurants ?? []).map(r => ({
-        name: r.name,
-        city: r.city,
-        menuItems: r.menuItems ?? [],
-        cuisineType: r.cuisineType ?? '',
-      }));
-    } catch { return []; }
+
+    py.on('error', (err) => {
+      console.error('Failed to start EasyOCR process:', err.message);
+      resolve([]);
+    });
   });
 }
 
-export async function analyzeFrames(frames: { timestamp: number, base64: string }[]): Promise<VisionResult> {
-  const client = getClient();
+export async function analyzeFrames(frames: { timestamp: number, base64: string, filePath?: string }[]): Promise<VisionResult> {
+  const filePaths = frames.map(f => f.filePath).filter((p): p is string => !!p);
 
-  // Split all frames into batches of 5, run all batches in parallel
-  const batches: typeof frames[] = [];
-  for (let i = 0; i < frames.length; i += 5) batches.push(frames.slice(i, i + 5));
-
-  console.log(`Running ${batches.length} parallel vision batch(es) over ${frames.length} frames`);
-  const batchResults = await Promise.all(batches.map(b => runOcrBatch(client, b)));
-
-  // Deduplicate by name (case-insensitive)
-  const seen = new Set<string>();
-  const all: { name: string; city: string; menuItems: string[]; cuisineType: string }[] = [];
-  for (const results of batchResults) {
-    for (const r of results) {
-      const key = r.name.toLowerCase().trim();
-      if (key && !seen.has(key)) { seen.add(key); all.push(r); }
-    }
+  if (filePaths.length === 0) {
+    console.log('No frame file paths available — skipping OCR');
+    return { name: '', city: '', menuItems: [], cuisineType: '', confidence: 0, _rawOcr: [] };
   }
 
-  console.log(`Vision found ${all.length} unique place(s):`, all.map(r => r.name));
+  console.log(`Running EasyOCR on ${filePaths.length} frames (local, no API cost)`);
+  const rawLines = await runEasyOcr(filePaths);
+  console.log(`EasyOCR found ${rawLines.length} text lines:`, rawLines.slice(0, 8));
 
-  // Return as VisionResult — put the highest-confidence (first) as primary
-  const top = all[0];
   return {
-    name: top?.name ?? '',
-    city: top?.city ?? '',
-    menuItems: top?.menuItems ?? [],
-    cuisineType: top?.cuisineType ?? '',
-    confidence: top ? 0.9 : 0,
-    _allFound: all,
+    name: '',
+    city: '',
+    menuItems: [],
+    cuisineType: '',
+    confidence: rawLines.length > 0 ? 0.7 : 0,
+    _rawOcr: rawLines,
   };
 }
 
@@ -178,9 +157,13 @@ export async function inferRestaurant(
   const captionSection = caption
     ? `Video caption (written by the creator — HIGHEST PRIORITY source):\n${caption.slice(0, 1500)}\n\n`
     : '';
-  const visionSection = allFound.length > 0
-    ? `Text read from video frames (OCR across all frames — HIGH PRIORITY):\n${JSON.stringify(allFound)}\n\n`
-    : `Vision analysis (single pass):\n${JSON.stringify(vision)}\n\n`;
+  // _rawOcr = flat text lines from local EasyOCR (zero API cost)
+  // _allFound = structured objects from old Groq vision path (legacy)
+  const visionSection = (vision._rawOcr && vision._rawOcr.length > 0)
+    ? `Raw text extracted from video frames by local OCR (HIGH PRIORITY — look for restaurant/café names, signs, location tags):\n${JSON.stringify(vision._rawOcr)}\n\n`
+    : allFound.length > 0
+      ? `Text read from video frames (OCR across all frames — HIGH PRIORITY):\n${JSON.stringify(allFound)}\n\n`
+      : '';
 
   const prompt = `${captionSection}${visionSection}Audio transcript: ${transcript || '(none)'}
 

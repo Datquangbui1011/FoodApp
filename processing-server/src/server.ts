@@ -33,6 +33,15 @@ const KNOWN_CLIENT_ERRORS = new Set([
   "Restaurant couldn't be identified",
 ]);
 
+function normalizeError(error: any): { msg: string; status: number } {
+  const raw: string = error?.message ?? 'Internal server error';
+  if (error?.status === 429 || raw.startsWith('429')) {
+    return { msg: 'AI service is busy — please try again in a moment', status: 429 };
+  }
+  const status = KNOWN_CLIENT_ERRORS.has(raw) ? 422 : 500;
+  return { msg: raw, status };
+}
+
 app.post('/process', requireApiKey, async (req: Request, res: Response) => {
   const { url } = req.body;
   if (!url) {
@@ -82,8 +91,7 @@ app.post('/process', requireApiKey, async (req: Request, res: Response) => {
     res.json({ status: 'success', url, inference, places, allPlaces, _debug: { caption, transcript, visionResult } });
   } catch (error: any) {
     console.error('Error processing video:', error);
-    const msg: string = error.message || 'Internal server error';
-    const status = KNOWN_CLIENT_ERRORS.has(msg) ? 422 : 500;
+    const { msg, status } = normalizeError(error);
     res.status(status).json({ error: msg });
   } finally {
     if (videoPath && fs.existsSync(videoPath)) fs.unlinkSync(videoPath);

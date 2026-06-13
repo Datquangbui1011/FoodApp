@@ -48,7 +48,9 @@ export default function HomeMap({ savedPins, nearbyPins, resultPins, selectedId,
   const resultCenter = resultPins.length > 1
     ? { lat: resultPins.reduce((s, p) => s + p.lat, 0) / resultPins.length, lng: resultPins.reduce((s, p) => s + p.lng, 0) / resultPins.length }
     : resultPins.length === 1 ? { lat: resultPins[0].lat, lng: resultPins[0].lng } : null;
-  const center = userLocation ?? resultCenter ?? (allPins.length > 0 ? { lat: allPins[0].lat, lng: allPins[0].lng } : DEFAULT_CENTER);
+  // A freshly-processed result can be anywhere in the world — center on it first,
+  // so the pin isn't left off-screen when the restaurant is far from the user.
+  const center = resultCenter ?? userLocation ?? (allPins.length > 0 ? { lat: allPins[0].lat, lng: allPins[0].lng } : DEFAULT_CENTER);
   const zoom = resultPins.length > 1 ? 12 : resultPins.length === 1 ? 15 : userLocation ? 13 : allPins.length > 0 ? 12 : 4;
 
   return (
