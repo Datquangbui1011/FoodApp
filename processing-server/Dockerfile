@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
     -o /usr/local/bin/yt-dlp && chmod +x /usr/local/bin/yt-dlp
 
-# EasyOCR + PyTorch CPU (~1.5 GB, cached in image)
+# EasyOCR + PyTorch CPU + Flask for persistent OCR server (~1.5 GB, cached in image)
 RUN pip3 install easyocr
 
 # Pre-download EasyOCR model into image — eliminates cold-start model fetch
@@ -29,5 +29,8 @@ COPY package*.json ./
 RUN npm install
 COPY . .
 
+RUN chmod +x /app/start.sh
+
 EXPOSE 8080
-CMD ["ts-node", "src/server.ts"]
+# start.sh launches the persistent OCR server then the Node server
+CMD ["/bin/sh", "/app/start.sh"]

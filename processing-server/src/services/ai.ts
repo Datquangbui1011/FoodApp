@@ -79,8 +79,26 @@ export interface VisionResult {
   _rawOcr?: string[];
 }
 
-// Run EasyOCR via Python subprocess — zero API cost, no rate limits
+// Try persistent OCR HTTP server first (model stays warm between requests).
+// Falls back to subprocess if the server isn't ready yet (e.g. cold start).
 async function runEasyOcr(filePaths: string[]): Promise<string[]> {
+  try {
+    const res = await fetch('http://localhost:5001', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filePaths),
+      signal: AbortSignal.timeout(180_000),
+    });
+    const lines: string[] = await res.json();
+    return lines.filter(l => l.trim().length > 1);
+  } catch {
+    // OCR server not ready — fall back to subprocess
+    console.log('[EasyOCR] HTTP server unavailable, using subprocess fallback');
+    return runEasyOcrSubprocess(filePaths);
+  }
+}
+
+async function runEasyOcrSubprocess(filePaths: string[]): Promise<string[]> {
   return new Promise((resolve) => {
     const scriptPath = path.join(__dirname, '..', '..', 'ocr.py');
     const pythonBin = process.env.PYTHON_PATH ?? (process.platform === 'darwin' ? '/opt/homebrew/bin/python3' : 'python3');
