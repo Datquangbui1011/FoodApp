@@ -15,6 +15,19 @@ const port = process.env.PORT || 3001;
 
 app.use(express.json());
 
+// CORS — allow browser requests from Vercel frontend and local dev
+app.use((req: Request, res: Response, next: express.NextFunction) => {
+  const allowed = ['https://foody-pied.vercel.app', 'http://localhost:3000', 'http://localhost:3001'];
+  const origin = req.headers.origin as string | undefined;
+  if (origin && allowed.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,x-api-key');
+  if (req.method === 'OPTIONS') { res.sendStatus(204); return; }
+  next();
+});
+
 // API Key middleware
 const requireApiKey = (req: Request, res: Response, next: express.NextFunction) => {
   const apiKey = req.headers['x-api-key'] || req.query.api_key;
