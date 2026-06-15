@@ -100,8 +100,8 @@ function ProcessingContent() {
     if (!url || called.current) return;
     called.current = true;
 
-    const serverUrl = process.env.NEXT_PUBLIC_PROCESSING_SERVER_URL || '/api/process';
-    const apiKey = process.env.NEXT_PUBLIC_PROCESSING_SERVER_API_KEY || '';
+    const serverUrl = process.env.NEXT_PUBLIC_PROCESSING_SERVER_URL!;
+    const apiKey = process.env.NEXT_PUBLIC_PROCESSING_SERVER_API_KEY!;
     fetch(`${serverUrl}/process`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
