@@ -87,9 +87,9 @@ app.post('/process', requireApiKey, async (req: Request, res: Response) => {
       throw new Error("Restaurant couldn't be identified");
     }
 
-    // Look up all restaurants in parallel (up to 5)
+    // Look up all restaurants in parallel (up to 10)
     const allPlaces = await Promise.all(
-      inference.restaurants.slice(0, 5).map(async r => ({
+      inference.restaurants.slice(0, 10).map(async r => ({
         name: r.name,
         confidence: r.confidence,
         menuItems: r.menuItems,

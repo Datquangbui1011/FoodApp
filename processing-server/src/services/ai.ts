@@ -192,14 +192,14 @@ If the caption or OCR shows multiple restaurants, list ALL of them.
 
 Output strictly as JSON with no markdown:
 {"restaurants":[{"name":"Restaurant Name","city":"City, State","confidence":0.9,"menuItems":["pasta"],"cuisineType":"Italian"}]}
-Up to 5 restaurants. Sort by confidence descending. Confidence 0.0–1.0.`;
+Up to 10 restaurants. Sort by confidence descending. Confidence 0.0–1.0.`;
 
   return withRetry(async () => {
     const response = await client.chat.completions.create({
       model: TEXT_MODEL,
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.1,
-      max_tokens: 800,
+      max_tokens: 1500,
     });
 
     const raw = response.choices[0]?.message?.content ?? '';
