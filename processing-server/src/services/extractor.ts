@@ -27,12 +27,12 @@ export async function extractFrames(videoPath: string, outputDir: string): Promi
       fs.mkdirSync(frameOutputDir, { recursive: true });
     }
 
-    // 5 frames — covers the video evenly, faster OCR than 8
+    // Max 8 frames — enough for OCR without burning tokens
     ffmpeg.ffprobe(videoPath, (err, metadata) => {
       if (err) return reject(new Error(`ffprobe error: ${err.message}`));
 
       const duration = metadata.format.duration || 15;
-      const interval = Math.max(1, duration / 5);
+      const interval = Math.max(1, duration / 8);
 
       ffmpeg(videoPath)
         .outputOptions([`-vf fps=1/${interval},scale=512:-1`])
