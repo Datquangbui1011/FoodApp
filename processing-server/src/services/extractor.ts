@@ -27,12 +27,12 @@ export async function extractFrames(videoPath: string, outputDir: string): Promi
       fs.mkdirSync(frameOutputDir, { recursive: true });
     }
 
-    // 16 frames at 384px wide ≈ same OCR time as 8 frames at 512px (56% pixels/frame)
+    // 12 frames at 384px wide — good coverage for multi-restaurant videos
     ffmpeg.ffprobe(videoPath, (err, metadata) => {
       if (err) return reject(new Error(`ffprobe error: ${err.message}`));
 
       const duration = metadata.format.duration || 15;
-      const interval = Math.max(1, duration / 16);
+      const interval = Math.max(1, duration / 12);
 
       ffmpeg(videoPath)
         .outputOptions([`-vf fps=1/${interval},scale=384:-1`])
