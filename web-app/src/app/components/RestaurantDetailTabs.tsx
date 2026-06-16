@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { OpenNearbyPlace } from '../api/nearby-open/route';
 import { useRouter } from 'next/navigation';
 import {
   IconBrandTiktok,
@@ -131,6 +132,20 @@ export default function RestaurantDetailTabs({
         <ActionButton icon={<IconShare size={19} />} label="Share" onClick={handleShare} />
       </div>
 
+      {/* Closed banner */}
+      {details?.openNow === false && (
+        <div style={{ margin: '0 12px 8px', padding: '10px 14px', borderRadius: 12, background: '#FEF2F2', border: '1px solid #FECACA', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: '#DC2626', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 8, display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#DC2626', flexShrink: 0 }} />
+            Closed right now
+          </span>
+          <button onClick={() => goTo('nearby')}
+            style={{ fontSize: 11, fontWeight: 600, color: '#DC2626', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', textDecoration: 'underline' }}>
+            See open nearby →
+          </button>
+        </div>
+      )}
+
       {/* Section nav — pills act as scroll-spy + jump links */}
       <div style={{ display: 'flex', gap: 6, padding: '4px 16px 12px', flexShrink: 0, borderTop: '1px solid #F0EFEC' }}>
         {TABS.map(t => {
@@ -165,6 +180,8 @@ export default function RestaurantDetailTabs({
         </div>
         <div data-section="nearby" style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #F0EFEC' }}>
           <NearbyPanel
+            pin={pin}
+            details={details}
             suggestions={suggestions}
             suggestionsLoading={suggestionsLoading}
             onSelectSuggestion={onSelectSuggestion}
@@ -648,37 +665,80 @@ function VideoReviews({ pin, details, detailsLoading }: { pin: MapPin; details: 
 }
 
 // ─── Nearby tab ───────────────────────────────────────────────────────────────
-function NearbyPanel({ suggestions, suggestionsLoading, onSelectSuggestion }: {
+function NearbyPanel({ pin, details, suggestions, suggestionsLoading, onSelectSuggestion }: {
+  pin: MapPin; details: PlaceDetails | null;
   suggestions: MapPin[]; suggestionsLoading: boolean; onSelectSuggestion: (sug: MapPin) => void;
 }) {
+  const isClosed = details?.openNow === false;
+  const [openNearby, setOpenNearby]     = useState<OpenNearbyPlace[]>([]);
+  const [openLoading, setOpenLoading]   = useState(false);
+
+  useEffect(() => {
+    if (!isClosed) return;
+    setOpenLoading(true);
+    fetch(`/api/nearby-open?lat=${pin.lat}&lng=${pin.lng}`)
+      .then(r => r.json())
+      .then((data: OpenNearbyPlace[]) => setOpenNearby(data.filter(p => p.name !== pin.name)))
+      .catch(() => {})
+      .finally(() => setOpenLoading(false));
+  }, [isClosed, pin.lat, pin.lng, pin.name]);
+
+  function NearbyList({ items, loading, emptyMsg }: {
+    items: (MapPin | OpenNearbyPlace)[]; loading: boolean; emptyMsg: string;
+  }) {
+    if (loading) return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ height: 64, borderRadius: 12, background: '#F7F6F3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <IconLoader2 size={18} color="#D3D1C7" style={{ animation: 'spin 0.8s linear infinite' }} />
+          </div>
+        ))}
+      </div>
+    );
+    if (items.length === 0) return <p style={{ fontSize: 12, color: '#B0AFA9', textAlign: 'center', padding: '12px 0' }}>{emptyMsg}</p>;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {items.map(sug => (
+          <button key={sug.id} onClick={() => onSelectSuggestion(sug as MapPin)}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', background: 'white', border: '1px solid #E8E7E4', borderRadius: 12, padding: '12px 14px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#F7F6F3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>🍽️</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13.5, fontWeight: 600, color: '#2C2C2A', margin: '0 0 2px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{sug.name}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <p style={{ fontSize: 11, color: '#888780', margin: 0 }}>{sug.cuisineType || 'Restaurant'}</p>
+                {'openNow' in sug && sug.openNow && (
+                  <span style={{ fontSize: 9, fontWeight: 700, color: '#16A34A', background: '#DCFCE7', borderRadius: 99, padding: '1px 5px' }}>Open</span>
+                )}
+                {sug.rating != null && (
+                  <span style={{ fontSize: 10, color: '#888780' }}>★ {sug.rating.toFixed(1)}</span>
+                )}
+              </div>
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--tomato)', flexShrink: 0 }}>View →</span>
+          </button>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div>
-      <SectionLabel>Similar spots nearby</SectionLabel>
-      {suggestionsLoading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {[0, 1, 2].map(i => (
-            <div key={i} style={{ height: 64, borderRadius: 12, background: '#F7F6F3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <IconLoader2 size={18} color="#D3D1C7" style={{ animation: 'spin 0.8s linear infinite' }} />
-            </div>
-          ))}
-        </div>
-      ) : suggestions.length === 0 ? (
-        <p style={{ fontSize: 12, color: '#B0AFA9', textAlign: 'center', padding: '20px 0' }}>No similar places found within 1.5 km.</p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {suggestions.map(sug => (
-            <button key={sug.id} onClick={() => onSelectSuggestion(sug)}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', background: 'white', border: '1px solid #E8E7E4', borderRadius: 12, padding: '12px 14px', textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: '#F7F6F3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 20 }}>🍽️</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: 13.5, fontWeight: 600, color: '#2C2C2A', margin: '0 0 2px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{sug.name}</p>
-                <p style={{ fontSize: 11, color: '#888780', margin: 0 }}>{sug.cuisineType || 'Restaurant'}</p>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--tomato)', flexShrink: 0 }}>View →</span>
-            </button>
-          ))}
+      {isClosed && (
+        <div style={{ marginBottom: 20 }}>
+          <SectionLabel>Open right now nearby</SectionLabel>
+          <NearbyList
+            items={openNearby}
+            loading={openLoading}
+            emptyMsg="No open restaurants found within 1.5 km."
+          />
         </div>
       )}
+      <SectionLabel>{isClosed ? 'Similar spots' : 'Similar spots nearby'}</SectionLabel>
+      <NearbyList
+        items={suggestions}
+        loading={suggestionsLoading}
+        emptyMsg="No similar places found within 1.5 km."
+      />
     </div>
   );
 }
