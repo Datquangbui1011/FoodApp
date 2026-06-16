@@ -753,62 +753,88 @@ export default function HomeMapClient() {
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 8 }}>
             <div style={{ width: 36, height: 4, borderRadius: 9999, background: '#D3D1C7' }} />
           </div>
-          {selectedPin && (
-            <div style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 10 }}>
-              {/* Back to list (only from discover) */}
+          {selectedPin && (() => {
+            const heroPh = details?.photoUrls?.[0];
+            const hasHero = !!heroPh;
+            const textColor = hasHero ? 'white' : 'var(--ink)';
+            const subColor  = hasHero ? 'rgba(255,255,255,0.8)' : '#888780';
+            return (
+              <>
+              {/* Back to list — outside the hero so it's always on plain background */}
               {isDiscover && (
-                <button
-                  onPointerDown={e => e.stopPropagation()}
-                  onClick={() => setSelectedId(null)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px', fontFamily: 'inherit' }}>
-                  <IconArrowLeft size={17} color="#E24B4A" />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#E24B4A' }}>Back to list</span>
-                </button>
-              )}
-              {/* Name row + save button */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                <p className="font-display" style={{ fontSize: 23, fontWeight: 600, color: 'var(--ink)', margin: '0 0 4px', lineHeight: 1.15, flex: 1 }}>
-                  {selectedPin.name}
-                </p>
-                <button onClick={handleSave} disabled={saving}
-                  onPointerDown={e => e.stopPropagation()}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0, marginTop: 1 }}>
-                  {isSaved
-                    ? <IconHeartFilled size={26} color="#E24B4A" />
-                    : <IconHeart size={26} color="#D3D1C7" />}
-                </button>
-              </div>
-              {/* Rating + price + open + distance */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <StarRating rating={details?.rating ?? selectedPin.rating} count={details?.ratingCount ?? null} />
-                {details?.priceLevel != null && (
-                  <span style={{ fontSize: 10, color: '#888780' }}>
-                    {'$'.repeat(details.priceLevel) || 'Free'}
-                  </span>
-                )}
-                {details?.openNow != null && (
-                  <span style={{ fontSize: 10, fontWeight: 600, color: details.openNow ? 'var(--tomato)' : '#E24B4A' }}>
-                    {details.openNow ? '● Open' : '● Closed'}
-                  </span>
-                )}
-                {details?.duration && details?.distance && (
-                  <span style={{ fontSize: 10, color: '#888780' }}>
-                    {details.distance} · {details.duration}
-                  </span>
-                )}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
-                <p style={{ fontSize: 12, color: '#888780', margin: 0 }}>{selectedPin.cuisineType}</p>
-                {isResult && (
-                  <button onClick={handleWrongPlace}
+                <div style={{ padding: '0 16px 4px' }}>
+                  <button
                     onPointerDown={e => e.stopPropagation()}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: '#B0AFA9', padding: 0, fontFamily: 'inherit' }}>
-                    Wrong place?
+                    onClick={() => setSelectedId(null)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                    <IconArrowLeft size={17} color="#E24B4A" />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#E24B4A' }}>Back to list</span>
                   </button>
+                </div>
+              )}
+              <div style={{ position: 'relative', overflow: 'hidden', minHeight: hasHero ? 200 : 'auto', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+                {/* Background photo */}
+                {heroPh && (
+                  <>
+                    <img src={heroPh} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.72) 100%)' }} />
+                  </>
                 )}
+                <div style={{ position: 'relative', padding: '0 16px 18px' }}>
+                  {/* Name row + save button */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <p className="font-display" style={{ fontSize: 23, fontWeight: 600, color: textColor, margin: '0 0 2px', lineHeight: 1.15 }}>
+                        {selectedPin.name}
+                      </p>
+                      {(details?.address ?? selectedPin.address) && (
+                        <p style={{ fontSize: 11.5, color: subColor, margin: 0, lineHeight: 1.4 }}>
+                          {details?.address ?? selectedPin.address}
+                        </p>
+                      )}
+                    </div>
+                    <button onClick={handleSave} disabled={saving}
+                      onPointerDown={e => e.stopPropagation()}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0, marginTop: 1 }}>
+                      {isSaved
+                        ? <IconHeartFilled size={26} color="#E24B4A" />
+                        : <IconHeart size={26} color={hasHero ? 'rgba(255,255,255,0.7)' : '#D3D1C7'} />}
+                    </button>
+                  </div>
+                  {/* Rating + price + open + distance */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                    <StarRating rating={details?.rating ?? selectedPin.rating} count={details?.ratingCount ?? null} />
+                    {details?.priceLevel != null && (
+                      <span style={{ fontSize: 10, color: subColor }}>
+                        {'$'.repeat(details.priceLevel) || 'Free'}
+                      </span>
+                    )}
+                    {details?.openNow != null && (
+                      <span style={{ fontSize: 10, fontWeight: 600, color: details.openNow ? (hasHero ? '#86EFAC' : '#16A34A') : (hasHero ? '#FCA5A5' : '#E24B4A') }}>
+                        {details.openNow ? '● Open' : '● Closed'}
+                      </span>
+                    )}
+                    {details?.duration && details?.distance && (
+                      <span style={{ fontSize: 10, color: subColor }}>
+                        {details.distance} · {details.duration}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 3 }}>
+                    <p style={{ fontSize: 12, color: subColor, margin: 0 }}>{selectedPin.cuisineType}</p>
+                    {isResult && (
+                      <button onClick={handleWrongPlace}
+                        onPointerDown={e => e.stopPropagation()}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 10, color: hasHero ? 'rgba(255,255,255,0.55)' : '#B0AFA9', padding: 0, fontFamily: 'inherit' }}>
+                        Wrong place?
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+              </>
+            );
+          })()}
         </div>
 
         {/* ── Discover list (shown when no restaurant is selected) ── */}
@@ -867,7 +893,7 @@ export default function HomeMapClient() {
                         </div>
                         {/* Open badge */}
                         {r.openNow != null && (
-                          <div style={{ position: 'absolute', bottom: 6, left: 6, background: r.openNow ? 'var(--tomato)' : '#E24B4A', borderRadius: 99, padding: '2px 5px' }}>
+                          <div style={{ position: 'absolute', bottom: 6, left: 6, background: r.openNow ? '#16A34A' : '#E24B4A', borderRadius: 99, padding: '2px 5px' }}>
                             <span style={{ fontSize: 9, fontWeight: 600, color: 'white' }}>{r.openNow ? 'Open' : 'Closed'}</span>
                           </div>
                         )}

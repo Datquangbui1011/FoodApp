@@ -28,7 +28,7 @@ export interface PlaceDetails {
   phone: string | null;
   website: string | null;
   summary: string | null;          // editorial_summary or top review snippet
-  topReviews: { text: string; rating: number; author: string }[];  // up to 5 Google reviews
+  topReviews: { text: string; rating: number; author: string; photoUrl: string | null; timeAgo: string | null }[];
   tiktoks: TikTokVideo[];          // up to 3 videos
 }
 
@@ -140,7 +140,7 @@ async function textSearch(name: string, lat: string, lng: string): Promise<TextR
 }
 
 // ── Google Place Details ──────────────────────────────────────────────────────
-type Review = { text: string; rating: number; author: string };
+type Review = { text: string; rating: number; author: string; photoUrl: string | null; timeAgo: string | null };
 
 interface DetailsResult {
   photoRefs: string[];
@@ -154,11 +154,16 @@ interface DetailsResult {
   topReviews: Review[];
 }
 
-function fairReviews(raw: { text?: string; rating?: number; author_name?: string }[]): Review[] {
+function fairReviews(raw: { text?: string; rating?: number; author_name?: string; profile_photo_url?: string; relative_time_description?: string }[]): Review[] {
   const valid = raw.filter(r => r.text && r.text.length > 20 && r.rating != null) as
-    { text: string; rating: number; author_name?: string }[];
-  // Google returns at most 5 reviews — surface them all, in the order given.
-  return valid.slice(0, 5).map(r => ({ text: r.text, rating: r.rating, author: r.author_name ?? 'Anonymous' }));
+    { text: string; rating: number; author_name?: string; profile_photo_url?: string; relative_time_description?: string }[];
+  return valid.slice(0, 5).map(r => ({
+    text:     r.text,
+    rating:   r.rating,
+    author:   r.author_name ?? 'Anonymous',
+    photoUrl: r.profile_photo_url ?? null,
+    timeAgo:  r.relative_time_description ?? null,
+  }));
 }
 
 async function placeDetails(placeId: string): Promise<DetailsResult> {
@@ -177,7 +182,7 @@ async function placeDetails(placeId: string): Promise<DetailsResult> {
         formatted_phone_number?: string;
         website?: string;
         editorial_summary?: { overview?: string };
-        reviews?: { text?: string; rating?: number; author_name?: string }[];
+        reviews?: { text?: string; rating?: number; author_name?: string; profile_photo_url?: string; relative_time_description?: string }[];
       };
     };
     const r = data.result;

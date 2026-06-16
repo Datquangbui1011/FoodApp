@@ -1,8 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { OpenNearbyPlace } from '../api/nearby-open/route';
 import { useRouter } from 'next/navigation';
+import type { OpenNearbyPlace } from '../api/nearby-open/route';
 import {
   IconBrandTiktok,
   IconBrandFacebook,
@@ -11,8 +11,6 @@ import {
   IconLoader2,
   IconPlayerPlay,
   IconMapPin,
-  IconStar,
-  IconStarFilled,
   IconExternalLink,
   IconPencil,
   IconWorld,
@@ -20,7 +18,6 @@ import {
   IconMap2,
   IconShare,
 } from '@tabler/icons-react';
-import { createClient } from '@/lib/supabase/client';
 import type { MapPin } from './HomeMap';
 import type { PlaceDetails } from '../api/place-details/route';
 import { StarRating, tiktokVideoId } from './HomeMapClient';
@@ -36,15 +33,6 @@ const TABS: { id: DetailTab; label: string }[] = [
 ];
 const SECTION_IDS = TABS.map(t => t.id);
 
-interface AppReview {
-  id: string;
-  user_id: string;
-  rating: number;
-  body: string | null;
-  restaurant_name: string;
-  created_at: string;
-}
-
 interface Props {
   pin: MapPin;
   details: PlaceDetails | null;
@@ -54,7 +42,7 @@ interface Props {
   suggestionsLoading: boolean;
   loadSuggestions: (pin: MapPin) => void;
   onSelectSuggestion: (sug: MapPin) => void;
-  showToast: (msg: string, ok?: boolean) => void;
+  showToast: (msg: string, ok?: boolean) => void; // kept for potential future use
 }
 
 export default function RestaurantDetailTabs({
@@ -122,7 +110,7 @@ export default function RestaurantDetailTabs({
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       {/* Action row — icon buttons (distinct from the pill nav below) */}
-      <div style={{ display: 'flex', gap: 4, padding: '2px 12px 12px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', gap: 4, padding: '14px 12px 12px', flexShrink: 0 }}>
         <ActionButton icon={<IconPencil size={19} />} label="Review" onClick={() => goTo('reviews')} />
         <ActionButton icon={<IconWorld size={19} />} label="Website" disabled={!details?.website}
           onClick={() => details?.website && window.open(details.website, '_blank', 'noopener,noreferrer')} />
@@ -176,7 +164,7 @@ export default function RestaurantDetailTabs({
           <InfoPanel pin={pin} details={details} userLocation={userLocation} />
         </div>
         <div data-section="reviews" style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #F0EFEC' }}>
-          <ReviewsPanel pin={pin} details={details} detailsLoading={detailsLoading} showToast={showToast} />
+          <ReviewsPanel pin={pin} details={details} detailsLoading={detailsLoading} />
         </div>
         <div data-section="nearby" style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #F0EFEC' }}>
           <NearbyPanel
@@ -276,15 +264,6 @@ function MenuPanel({ pin, details, detailsLoading }: { pin: MapPin; details: Pla
 }
 
 // ─── Info tab ─────────────────────────────────────────────────────────────────
-// Real fields render with data; the rest list "Not available yet" until a data
-// source exists (Places API v1 amenities/payments/features are a follow-up).
-const PLACEHOLDER_SECTIONS: { icon: string; label: string }[] = [
-  { icon: '🛎️', label: 'Amenities' },
-  { icon: '💳', label: 'Payments' },
-  { icon: '✨', label: 'Features' },
-  { icon: '🌿', label: 'Eco-friendly' },
-  { icon: '🩺', label: 'Health score' },
-];
 
 function InfoPanel({ pin, details, userLocation }: { pin: MapPin; details: PlaceDetails | null; userLocation: { lat: number; lng: number } | null }) {
   const dest = `${pin.lat},${pin.lng}`;
@@ -299,10 +278,12 @@ function InfoPanel({ pin, details, userLocation }: { pin: MapPin; details: Place
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pin.name} ${pin.address}`)}`;
 
   const todayIdx = (new Date().getDay() + 6) % 7;
+  const [hoursOpen, setHoursOpen] = useState(false);
 
   return (
     <div>
       {/* Route map */}
+      {mapSrc && <SectionLabel>Map</SectionLabel>}
       {mapSrc && (
         <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid #E8E7E4', marginBottom: 10 }}>
           <iframe
@@ -324,19 +305,34 @@ function InfoPanel({ pin, details, userLocation }: { pin: MapPin; details: Place
         <IconMapPin size={17} /> Get Directions
       </a>
 
-      {/* Hours */}
+      {/* Hours — collapsed by default, shows today only */}
       <SectionLabel>Hours</SectionLabel>
       {details?.hours && details.hours.length > 0 ? (
         <div style={{ marginBottom: 18 }}>
-          {details.hours.map((line, i) => {
-            const [day, ...rest] = line.split(': ');
+          {(() => {
+            const todayLine = details.hours[todayIdx];
+            const [todayDay, ...todayRest] = (todayLine ?? '').split(': ');
+            const todayHours = todayRest.join(': ');
             return (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 12, fontWeight: i === todayIdx ? 700 : 400, color: i === todayIdx ? '#2C2C2A' : '#5F5E5A' }}>
-                <span>{day}</span>
-                <span>{rest.join(': ')}</span>
-              </div>
+              <>
+                <button onClick={() => setHoursOpen(o => !o)}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', background: 'none', border: 'none', padding: '4px 0', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#2C2C2A' }}>{todayDay} · {todayHours}</span>
+                  <span style={{ fontSize: 11, color: '#888780', marginLeft: 8, flexShrink: 0 }}>{hoursOpen ? '▲ Less' : '▼ All hours'}</span>
+                </button>
+                {hoursOpen && details.hours!.map((line, i) => {
+                  if (i === todayIdx) return null;
+                  const [day, ...rest] = line.split(': ');
+                  return (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '3px 0', fontSize: 12, color: '#5F5E5A' }}>
+                      <span>{day}</span>
+                      <span>{rest.join(': ')}</span>
+                    </div>
+                  );
+                })}
+              </>
             );
-          })}
+          })()}
         </div>
       ) : (
         <p style={{ fontSize: 12, color: '#B0AFA9', margin: '0 0 18px' }}>
@@ -344,217 +340,143 @@ function InfoPanel({ pin, details, userLocation }: { pin: MapPin; details: Place
         </p>
       )}
 
-      {/* Contact */}
-      <SectionLabel>Contact</SectionLabel>
-      <div style={{ marginBottom: 18 }}>
-        {(details?.address ?? pin.address) && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 8 }}>
-            <span style={{ fontSize: 16 }}>📍</span>
-            <p style={{ fontSize: 12, color: '#5F5E5A', margin: 0, lineHeight: 1.5 }}>{details?.address ?? pin.address}</p>
-          </div>
-        )}
-        {details?.phone && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: 16 }}>📞</span>
-            <a href={`tel:${details.phone}`} style={{ fontSize: 12, color: 'var(--tomato)', textDecoration: 'none', fontWeight: 500 }}>{details.phone}</a>
-          </div>
-        )}
-        {details?.website && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ fontSize: 16 }}>🌐</span>
-            <a href={details.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--tomato)', textDecoration: 'none', fontWeight: 500, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-              {details.website.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '')}
-            </a>
-          </div>
-        )}
-        {!details?.phone && !details?.website && !details?.address && !pin.address && (
-          <p style={{ fontSize: 12, color: '#B0AFA9', margin: 0 }}>No contact details available.</p>
-        )}
-      </div>
 
-      {/* Placeholder sections — no data source yet */}
-      {PLACEHOLDER_SECTIONS.map(s => (
-        <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 0', borderTop: '1px solid #F0EFEC' }}>
-          <span style={{ fontSize: 13, color: '#2C2C2A', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16 }}>{s.icon}</span> {s.label}
-          </span>
-          <span style={{ fontSize: 11, color: '#B0AFA9' }}>Not available yet</span>
-        </div>
-      ))}
     </div>
   );
 }
 
 // ─── Reviews tab ──────────────────────────────────────────────────────────────
-function ReviewsPanel({ pin, details, detailsLoading, showToast }: {
-  pin: MapPin; details: PlaceDetails | null; detailsLoading: boolean; showToast: (m: string, ok?: boolean) => void;
+const AVATAR_COLORS = ['#E53935','#8E24AA','#1E88E5','#00897B','#F4511E','#6D4C41','#546E7A'];
+function avatarColor(name: string) { return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length]; }
+
+function ReviewsPanel({ pin, details, detailsLoading }: {
+  pin: MapPin; details: PlaceDetails | null; detailsLoading: boolean;
 }) {
-  const router = useRouter();
-  const placeKey = details?.placeId ?? `${pin.name}@${pin.lat},${pin.lng}`;
-  const [appReviews, setAppReviews] = useState<AppReview[]>([]);
-  const [myRating, setMyRating]     = useState(0);
-  const [myBody, setMyBody]         = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const overallRating = details?.rating ?? pin.rating;
+  const reviews = details?.topReviews ?? [];
 
-  const loadAppReviews = useCallback(async (): Promise<AppReview[]> => {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from('place_reviews')
-      .select('id, user_id, rating, body, restaurant_name, created_at')
-      .eq('place_key', placeKey)
-      .order('created_at', { ascending: false });
-    return (data as AppReview[] | null) ?? [];
-  }, [placeKey]);
+  const googleReviewUrl = details?.placeId
+    ? `https://search.google.com/local/writereview?placeid=${details.placeId}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pin.name)}`;
+  const moreHref = details?.placeId
+    ? `https://www.google.com/maps/place/?q=place_id:${details.placeId}`
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pin.name} ${pin.address ?? ''}`)}`;
 
-  useEffect(() => {
-    let cancelled = false;
-    loadAppReviews().then(rows => { if (!cancelled) setAppReviews(rows); });
-    return () => { cancelled = true; };
-  }, [loadAppReviews]);
-
-  async function submitReview() {
-    if (myRating === 0 || submitting) return;
-    setSubmitting(true);
-    try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push('/auth/login'); return; }
-      const { error } = await supabase.from('place_reviews').upsert({
-        user_id: user.id,
-        place_key: placeKey,
-        restaurant_name: pin.name,
-        rating: myRating,
-        body: myBody.trim() || null,
-      }, { onConflict: 'user_id,place_key' });
-      if (error) throw error;
-      setMyBody('');
-      setMyRating(0);
-      setAppReviews(await loadAppReviews());
-      showToast('Review posted ♥');
-    } catch (err) {
-      console.error('Review failed:', err);
-      showToast('Could not post review — are you signed in?', false);
-    } finally { setSubmitting(false); }
-  }
-
-  const moreHref = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${pin.name} ${pin.address}`)}`;
+  const counts = [5,4,3,2,1].map(s => reviews.filter(r => r.rating === s).length);
+  const maxCount = Math.max(...counts, 1);
 
   return (
     <div>
-      {/* Summary dashboard */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: '#F7F6F3', borderRadius: 14, padding: '14px 16px', marginBottom: 18 }}>
-        <div style={{ textAlign: 'center' }}>
-          <p className="font-display" style={{ fontSize: 34, fontWeight: 700, color: 'var(--ink)', margin: 0, lineHeight: 1 }}>
-            {details?.rating != null ? details.rating.toFixed(1) : (pin.rating != null ? pin.rating.toFixed(1) : '—')}
+      {/* ── Summary above bars ── */}
+      {details?.summary && (
+        <div style={{ marginBottom: 14 }}>
+          <SectionLabel>Summary Review</SectionLabel>
+          <p style={{ fontSize: 12, color: '#5F5E5A', lineHeight: 1.6, margin: 0 }}>
+            {details.summary}
           </p>
-          <div style={{ marginTop: 4 }}>
-            <StarRating rating={details?.rating ?? pin.rating} />
-          </div>
-        </div>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 12, color: '#5F5E5A', margin: '0 0 2px' }}>
-            {details?.ratingCount ? `${details.ratingCount.toLocaleString()} Google ratings` : 'Google rating'}
-          </p>
-          <p style={{ fontSize: 11, color: '#B0AFA9', margin: 0 }}>
-            {appReviews.length > 0 ? `${appReviews.length} review${appReviews.length > 1 ? 's' : ''} on Foody` : 'Be the first to review on Foody'}
-          </p>
-        </div>
-      </div>
-
-      {/* In-app composer */}
-      <SectionLabel>Rate this place</SectionLabel>
-      <div style={{ background: 'white', border: '1px solid #E8E7E4', borderRadius: 14, padding: 12, marginBottom: 18 }}>
-        <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
-          {[1, 2, 3, 4, 5].map(s => (
-            <button key={s} onClick={() => setMyRating(s)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, lineHeight: 0 }}>
-              {s <= myRating
-                ? <IconStarFilled size={26} color="#F5A623" />
-                : <IconStar size={26} color="#D3D1C7" />}
-            </button>
-          ))}
-        </div>
-        <textarea
-          value={myBody}
-          onChange={e => setMyBody(e.target.value)}
-          placeholder="Share your experience (optional)…"
-          rows={3}
-          style={{ width: '100%', resize: 'none', border: '1px solid #E8E7E4', borderRadius: 10, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit', color: '#2C2C2A', outline: 'none', boxSizing: 'border-box' }}
-        />
-        <button onClick={submitReview} disabled={myRating === 0 || submitting}
-          style={{
-            marginTop: 10, width: '100%', borderRadius: 10, padding: '10px 0', border: 'none',
-            background: myRating === 0 ? '#E8E7E4' : 'var(--tomato)',
-            color: myRating === 0 ? '#B0AFA9' : 'white',
-            fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-            cursor: myRating === 0 || submitting ? 'default' : 'pointer',
-          }}>
-          {submitting ? 'Posting…' : 'Post review'}
-        </button>
-      </div>
-
-      {/* In-app reviews */}
-      {appReviews.length > 0 && (
-        <div style={{ marginBottom: 18 }}>
-          <SectionLabel>Foody reviews</SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {appReviews.map(r => (
-              <div key={r.id} style={{ background: '#FFF8F2', borderRadius: 10, padding: '9px 12px', borderLeft: '3px solid var(--tomato)' }}>
-                <div style={{ display: 'flex', gap: 1, marginBottom: 5 }}>
-                  {[1, 2, 3, 4, 5].map(s => (
-                    <span key={s} style={{ fontSize: 10, color: s <= r.rating ? '#F5A623' : '#D3D1C7' }}>★</span>
-                  ))}
-                </div>
-                {r.body && <p style={{ fontSize: 11.5, color: '#5F5E5A', margin: 0, lineHeight: 1.6 }}>{r.body}</p>}
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
-      {/* Google reviews */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <SectionLabel>What people say</SectionLabel>
-        <span style={{ fontSize: 9, color: '#B0AFA9' }}>Google Reviews</span>
-      </div>
-      {detailsLoading && !(details?.topReviews?.length) ? (
-        <p style={{ fontSize: 12, color: '#B0AFA9', margin: 0 }}>Loading reviews…</p>
-      ) : (details?.topReviews ?? []).length > 0 ? (
-        <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {details!.topReviews.map((review, i) => {
-              const positive = review.rating >= 4;
-              const accent = positive ? 'var(--tomato)' : review.rating <= 2 ? '#E24B4A' : '#888780';
-              const bg = positive ? '#F0FAF5' : review.rating <= 2 ? '#FEF2F2' : '#F7F6F3';
-              return (
-                <div key={i} style={{ background: bg, borderRadius: 10, padding: '9px 12px', borderLeft: `3px solid ${accent}` }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <div style={{ display: 'flex', gap: 1 }}>
-                      {[1, 2, 3, 4, 5].map(s => (
-                        <span key={s} style={{ fontSize: 10, color: s <= review.rating ? '#F5A623' : '#D3D1C7' }}>★</span>
-                      ))}
-                    </div>
-                    <span style={{ fontSize: 9, color: '#B0AFA9', fontWeight: 500 }}>{review.author}</span>
-                  </div>
-                  <p style={{ fontSize: 11, color: '#5F5E5A', margin: 0, lineHeight: 1.6,
-                    display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    &ldquo;{review.text}&rdquo;
-                  </p>
-                </div>
-              );
-            })}
+      {/* ── Score + bars ── */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+        {/* Left: big score */}
+        <div style={{ flexShrink: 0, textAlign: 'center', width: 72 }}>
+          <p className="font-display" style={{ fontSize: 48, fontWeight: 700, color: 'var(--ink)', margin: 0, lineHeight: 1 }}>
+            {overallRating != null ? overallRating.toFixed(1) : '—'}
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 1, margin: '4px 0 2px' }}>
+            {[1,2,3,4,5].map(s => (
+              <span key={s} style={{ fontSize: 11, color: overallRating != null && s <= Math.round(overallRating) ? '#F5A623' : '#D3D1C7' }}>★</span>
+            ))}
           </div>
+          {details?.ratingCount != null && (
+            <p style={{ fontSize: 10, color: '#888780', margin: 0 }}>{details.ratingCount.toLocaleString()}</p>
+          )}
+        </div>
+
+        {/* Right: star bars */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 5 }}>
+          {[5,4,3,2,1].map((s, i) => (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 11, color: '#888780', width: 8, flexShrink: 0 }}>{s}</span>
+              <div style={{ flex: 1, height: 8, borderRadius: 99, background: '#E8E7E4', overflow: 'hidden' }}>
+                <div style={{ height: '100%', borderRadius: 99, background: '#F5A623', width: `${(counts[i] / maxCount) * 100}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Write a review button ── */}
+      <a href={googleReviewUrl} target="_blank" rel="noopener noreferrer"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 99, padding: '11px 0', border: '1px solid #D3D1C7', background: 'white', color: '#2C2C2A', fontSize: 13, fontWeight: 600, textDecoration: 'none', marginBottom: 20 }}>
+        <IconPencil size={16} color="var(--tomato)" /> Write a review
+      </a>
+
+      {/* ── Individual reviews ── */}
+      {detailsLoading && reviews.length === 0 ? (
+        <p style={{ fontSize: 12, color: '#B0AFA9', margin: 0 }}>Loading reviews…</p>
+      ) : reviews.length > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {reviews.map((review, i) => {
+            const isExpanded = expanded[i];
+            const longText = review.text.length > 180;
+            const placePhoto = details?.photoUrls?.[i % (details.photoUrls.length || 1)];
+            return (
+              <div key={i} style={{ padding: '14px 0', borderBottom: '1px solid #F0EFEC' }}>
+                {/* Avatar row */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                  {review.photoUrl ? (
+                    <img src={review.photoUrl} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                  ) : placePhoto ? (
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                      <img src={placePhoto} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
+                        <span style={{ fontSize: 16, fontWeight: 700, color: 'white' }}>{review.author[0]?.toUpperCase()}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: avatarColor(review.author), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 16, fontWeight: 700, color: 'white' }}>{review.author[0]?.toUpperCase()}</span>
+                    </div>
+                  )}
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: '#2C2C2A', margin: 0 }}>{review.author}</p>
+                    {review.timeAgo && <p style={{ fontSize: 11, color: '#888780', margin: 0 }}>{review.timeAgo}</p>}
+                  </div>
+                </div>
+                {/* Stars */}
+                <div style={{ display: 'flex', gap: 1, marginBottom: 6 }}>
+                  {[1,2,3,4,5].map(s => (
+                    <span key={s} style={{ fontSize: 13, color: s <= review.rating ? '#F5A623' : '#D3D1C7' }}>★</span>
+                  ))}
+                </div>
+                {/* Text */}
+                <p style={{ fontSize: 13, color: '#2C2C2A', margin: 0, lineHeight: 1.55,
+                  ...(longText && !isExpanded ? { display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}) }}>
+                  {review.text}
+                </p>
+                {longText && (
+                  <button onClick={() => setExpanded(e => ({ ...e, [i]: !e[i] }))}
+                    style={{ fontSize: 12, fontWeight: 600, color: '#888780', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0 0', fontFamily: 'inherit' }}>
+                    {isExpanded ? 'Show less' : 'More'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
           <a href={moreHref} target="_blank" rel="noopener noreferrer"
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 10, borderRadius: 10, padding: '9px 0', background: '#F7F6F3', border: '1px solid #E8E7E4', textDecoration: 'none', fontSize: 12, fontWeight: 600, color: '#5F5E5A' }}>
-            More reviews <IconExternalLink size={14} />
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 12, borderRadius: 10, padding: '11px 0', background: '#F7F6F3', border: '1px solid #E8E7E4', textDecoration: 'none', fontSize: 13, fontWeight: 600, color: '#2C2C2A' }}>
+            See all reviews on Google <IconExternalLink size={14} />
           </a>
-        </>
+        </div>
       ) : (
-        <p style={{ fontSize: 12, color: '#B0AFA9', margin: 0 }}>No Google reviews found.</p>
+        <p style={{ fontSize: 12, color: '#B0AFA9', margin: 0 }}>No reviews yet.</p>
       )}
 
       {/* Video reviews */}
-      <div style={{ marginTop: 18 }}>
+      <div style={{ marginTop: 20 }}>
         <SectionLabel>Video reviews</SectionLabel>
         <VideoReviews pin={pin} details={details} detailsLoading={detailsLoading} />
       </div>
@@ -676,7 +598,8 @@ function NearbyPanel({ pin, details, suggestions, suggestionsLoading, onSelectSu
   useEffect(() => {
     if (!isClosed) return;
     setOpenLoading(true);
-    fetch(`/api/nearby-open?lat=${pin.lat}&lng=${pin.lng}`)
+    const qs = new URLSearchParams({ lat: String(pin.lat), lng: String(pin.lng), ...(pin.cuisineType ? { cuisine: pin.cuisineType } : {}) });
+    fetch(`/api/nearby-open?${qs}`)
       .then(r => r.json())
       .then((data: OpenNearbyPlace[]) => setOpenNearby(data.filter(p => p.name !== pin.name)))
       .catch(() => {})
@@ -707,7 +630,7 @@ function NearbyPanel({ pin, details, suggestions, suggestionsLoading, onSelectSu
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <p style={{ fontSize: 11, color: '#888780', margin: 0 }}>{sug.cuisineType || 'Restaurant'}</p>
                 {'openNow' in sug && sug.openNow && (
-                  <span style={{ fontSize: 9, fontWeight: 700, color: '#16A34A', background: '#DCFCE7', borderRadius: 99, padding: '1px 5px' }}>Open</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'white', background: '#16A34A', borderRadius: 99, padding: '2px 7px' }}>● Open</span>
                 )}
                 {sug.rating != null && (
                   <span style={{ fontSize: 10, color: '#888780' }}>★ {sug.rating.toFixed(1)}</span>
@@ -723,22 +646,20 @@ function NearbyPanel({ pin, details, suggestions, suggestionsLoading, onSelectSu
 
   return (
     <div>
-      {isClosed && (
-        <div style={{ marginBottom: 20 }}>
-          <SectionLabel>Open right now nearby</SectionLabel>
-          <NearbyList
-            items={openNearby}
-            loading={openLoading}
-            emptyMsg="No open restaurants found within 1.5 km."
-          />
-        </div>
+      <SectionLabel>{isClosed ? 'Open right now nearby' : 'Open nearby'}</SectionLabel>
+      {isClosed ? (
+        <NearbyList
+          items={openNearby}
+          loading={openLoading}
+          emptyMsg="No open places found within 1.5 km."
+        />
+      ) : (
+        <NearbyList
+          items={suggestions}
+          loading={suggestionsLoading}
+          emptyMsg="No similar places found within 1.5 km."
+        />
       )}
-      <SectionLabel>{isClosed ? 'Similar spots' : 'Similar spots nearby'}</SectionLabel>
-      <NearbyList
-        items={suggestions}
-        loading={suggestionsLoading}
-        emptyMsg="No similar places found within 1.5 km."
-      />
     </div>
   );
 }
