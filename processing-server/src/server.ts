@@ -7,6 +7,7 @@ import { extractAudio, extractFrames } from './services/extractor';
 import { transcribeAudio, analyzeFrames, inferRestaurant } from './services/ai';
 import { lookupPlace } from './services/places';
 import { fetchVideoMetadata } from './services/metadata';
+import { getCached, setCache } from './services/cache';
 
 dotenv.config();
 
@@ -61,6 +62,13 @@ app.post('/process', requireApiKey, async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Missing video URL in request body' });
   }
 
+  // Return cached result instantly if we've processed this URL before
+  const cached = await getCached(url);
+  if (cached) {
+    console.log('Cache hit:', url);
+    return res.json({ ...cached, _cached: true });
+  }
+
   let videoPath = '';
   let audioPath = '';
   try {
@@ -101,7 +109,9 @@ app.post('/process', requireApiKey, async (req: Request, res: Response) => {
     // Legacy: top result's places array for any old clients
     const places = allPlaces[0]?.places ?? [];
 
-    res.json({ status: 'success', url, inference, places, allPlaces, _debug: { caption, transcript, visionResult } });
+    const result = { status: 'success', url, inference, places, allPlaces, _debug: { caption, transcript, visionResult } };
+    await setCache(url, result);
+    res.json(result);
   } catch (error: any) {
     console.error('Error processing video:', error);
     const { msg, status } = normalizeError(error);
