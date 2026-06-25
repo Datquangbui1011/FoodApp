@@ -10,6 +10,7 @@ import {
   IconStarFilled,
   IconHeart,
   IconHeartFilled,
+  IconBookmark,
   IconLoader2,
   IconPhone,
   IconChevronUp,
@@ -22,6 +23,7 @@ import type { MapPin } from './HomeMap';
 import type { PlaceDetails } from '../api/place-details/route';
 import type { NearbyRestaurant } from '../api/nearby-restaurants/route';
 import RestaurantDetailTabs from './RestaurantDetailTabs';
+import CollectionSheet from './CollectionSheet';
 
 const HomeMap = dynamic(() => import('./HomeMap'), { ssr: false });
 
@@ -122,6 +124,7 @@ export default function HomeMapClient() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [saving, setSaving]               = useState(false);
   const [toast, setToast]                 = useState<{ msg: string; ok: boolean } | null>(null);
+  const [showCollectionSheet, setShowCollectionSheet] = useState(false);
   const [hideHowTo, setHideHowTo]         = useState(false);
   const [suggestions, setSuggestions]     = useState<MapPin[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
@@ -675,6 +678,22 @@ export default function HomeMapClient() {
         </div>
       )}
 
+      {/* Collection sheet */}
+      {showCollectionSheet && selectedPin && (
+        <CollectionSheet
+          placeId={details?.placeId ?? selectedPin.id}
+          restaurantName={selectedPin.name}
+          lat={selectedPin.lat}
+          lng={selectedPin.lng}
+          address={details?.address ?? selectedPin.address}
+          cuisineType={selectedPin.cuisineType}
+          photoUrl={details?.photoUrls?.[0]}
+          rating={details?.rating ?? selectedPin.rating}
+          onClose={() => setShowCollectionSheet(false)}
+          onToast={showToast}
+        />
+      )}
+
       {/* ── Multi-result card strip ── */}
       {resultPins.length > 1 && snap !== 'expanded' && (
         <div style={{
@@ -793,12 +812,11 @@ export default function HomeMapClient() {
                         </p>
                       )}
                     </div>
-                    <button onClick={handleSave} disabled={saving}
+                    <button
                       onPointerDown={e => e.stopPropagation()}
+                      onClick={() => setShowCollectionSheet(true)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0, marginTop: 1 }}>
-                      {isSaved
-                        ? <IconHeartFilled size={26} color="#E24B4A" />
-                        : <IconHeart size={26} color={hasHero ? 'rgba(255,255,255,0.7)' : '#D3D1C7'} />}
+                      <IconBookmark size={26} color={hasHero ? 'rgba(255,255,255,0.7)' : '#D3D1C7'} />
                     </button>
                   </div>
                   {/* Rating + price + open + distance */}

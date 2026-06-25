@@ -1,326 +1,209 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { IconMapPin, IconHeart, IconArrowLeft } from '@tabler/icons-react';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { IconBookmark, IconPlus, IconCamera, IconCalendar } from '@tabler/icons-react';
 import StatusBar from '../components/StatusBar';
 import { createClient } from '@/lib/supabase/client';
-import RestaurantDetailTabs from '../components/RestaurantDetailTabs';
-import type { MapPin } from '../components/HomeMap';
-import type { PlaceDetails } from '../api/place-details/route';
 
-const COLORS = ['#F2DACE', '#EFE2C8', '#EAD6CB', '#F3DCCF'];
-const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? '';
-
-interface SavedEntry {
-  id: string | number;
+interface Collection {
+  id: string;
   name: string;
-  cuisineType: string;
-  address: string;
-  lat: number | null;
-  lng: number | null;
-  rating: number | null;
+  emoji: string;
+  cover_photo_url: string | null;
+  target_date: string | null;
+  count: number;
+  hasCurrent: boolean;
 }
 
-function photoUrl(name: string, lat: number | null, lng: number | null): string {
-  if (!lat || !lng || !KEY) return '';
-  return `/api/place-photo?name=${encodeURIComponent(name)}&lat=${lat}&lng=${lng}`;
-}
+const BG_COLORS = ['#F2DACE', '#EFE2C8', '#EAD6CB', '#F3DCCF', '#EAD4D4', '#D4E8EA'];
 
-export default function Saved() {
-  const [items, setItems] = useState<SavedEntry[]>([]);
+export default function Collections() {
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const [selectedPin, setSelectedPin] = useState<MapPin | null>(null);
-  const [details, setDetails] = useState<PlaceDetails | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState<MapPin[]>([]);
-  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  const showToast = useCallback((msg: string, ok = true) => {
-    clearTimeout(toastTimer.current);
-    setToast({ msg, ok });
-    toastTimer.current = setTimeout(() => setToast(null), 3000);
-  }, []);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newDate, setNewDate] = useState('');
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    async function load() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('saved_restaurants')
-          .select('id, restaurant_name, cuisine_type, address, lat, lng, rating')
-          .eq('user_id', user.id)
-          .order('saved_at', { ascending: false });
-        if (data) {
-          setItems(data.map(row => ({
-            id: row.id,
-            name: row.restaurant_name,
-            cuisineType: row.cuisine_type ?? '',
-            address: row.address ?? '',
-            lat: row.lat as number | null,
-            lng: row.lng as number | null,
-            rating: (row as Record<string, unknown>).rating as number | null ?? null,
-          })));
-        }
-      } else {
-        try {
-          const raw = localStorage.getItem('foodmap_saved');
-          if (raw) setItems(JSON.parse(raw));
-        } catch { /* ignore */ }
-      }
-      setLoading(false);
-    }
-    load();
-  }, []);
-
-  // Get user location once for the detail sheet
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      p => setUserLocation({ lat: p.coords.latitude, lng: p.coords.longitude }),
-      () => {},
-      { timeout: 8000 },
-    );
-  }, []);
-
-  // Fetch place details whenever selected pin changes
-  useEffect(() => {
-    const pin = selectedPin;
-    if (!pin) { setDetails(null); setSuggestions([]); return; }
-    setDetails(null);
-    setSuggestions([]);
-    setDetailsLoading(true);
-    const qs = new URLSearchParams({
-      name: pin.name,
-      lat: String(pin.lat),
-      lng: String(pin.lng),
-      ...(pin.address ? { address: pin.address } : {}),
-      ...(userLocation ? { userLat: String(userLocation.lat), userLng: String(userLocation.lng) } : {}),
-    });
-    fetch(`/api/place-details?${qs}`)
+    fetch('/api/collections')
       .then(r => r.json())
-      .then((d: PlaceDetails) => setDetails(d))
-      .catch(() => {})
-      .finally(() => setDetailsLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPin?.id]);
+      .then((data: Collection[]) => { setCollections(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
 
-  async function loadSuggestions(pin: MapPin) {
-    if (suggestionsLoading) return;
-    setSuggestionsLoading(true);
-    try {
-      const cuisine = pin.cuisineType?.toLowerCase().replace(/[^a-z0-9|]/g, '') || 'restaurant';
-      const isAmenity = /cafe|coffee|café/.test(cuisine);
-      const inner = isAmenity
-        ? `node["amenity"="cafe"](around:1500,${pin.lat},${pin.lng});
-           way["amenity"="cafe"](around:1500,${pin.lat},${pin.lng});`
-        : `node["amenity"="restaurant"]["cuisine"~"${cuisine}",i](around:1500,${pin.lat},${pin.lng});
-           way["amenity"="restaurant"]["cuisine"~"${cuisine}",i](around:1500,${pin.lat},${pin.lng});
-           node["amenity"="restaurant"](around:800,${pin.lat},${pin.lng});
-           way["amenity"="restaurant"](around:800,${pin.lat},${pin.lng});`;
-      const query = `[out:json][timeout:10];\n(\n${inner}\n);\nout center 10;`;
-      const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
-      const data = await res.json();
-      const pins: MapPin[] = (data.elements as Record<string, unknown>[])
-        .map(el => {
-          const tags = (el.tags ?? {}) as Record<string, string>;
-          const isWay = el.type === 'way';
-          const center = (el.center ?? {}) as Record<string, number>;
-          return {
-            id: `sug-${el.id as string}`,
-            name: tags.name ?? '',
-            lat: isWay ? center.lat : el.lat as number,
-            lng: isWay ? center.lon : el.lon as number,
-            cuisineType: tags.cuisine ?? pin.cuisineType,
-            address: [tags['addr:housenumber'], tags['addr:street']].filter(Boolean).join(' '),
-            videoUrl: null,
-            rating: null,
-          };
-        })
-        .filter(p => p.name && p.name !== pin.name && p.lat && p.lng)
-        .slice(0, 5);
-      setSuggestions(pins);
-    } catch { /* ignore */ }
-    finally { setSuggestionsLoading(false); }
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverFile(file);
+    const reader = new FileReader();
+    reader.onload = ev => setCoverPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
   }
 
-  function handleTap(item: SavedEntry) {
-    if (!item.lat || !item.lng) return;
-    setSelectedPin({
-      id: String(item.id),
-      name: item.name,
-      lat: item.lat,
-      lng: item.lng,
-      cuisineType: item.cuisineType,
-      address: item.address,
-      rating: item.rating,
-      videoUrl: null,
-    });
+  async function uploadCover(file: File): Promise<string | null> {
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const ext = file.name.split('.').pop() ?? 'jpg';
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('collection-covers').upload(path, file, { upsert: true });
+      if (error) return null;
+      const { data } = supabase.storage.from('collection-covers').getPublicUrl(path);
+      return data.publicUrl;
+    } catch { return null; }
+  }
+
+  async function createCollection() {
+    if (!newName.trim() || busy) return;
+    setBusy(true);
+    try {
+      let coverUrl: string | null = null;
+      if (coverFile) coverUrl = await uploadCover(coverFile);
+      const res = await fetch('/api/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName.trim(), emoji: '📍', cover_photo_url: coverUrl, target_date: newDate || null }),
+      });
+      const col = await res.json() as Collection;
+      setCollections(prev => [{ ...col, count: 0, hasCurrent: false }, ...prev]);
+      setCreating(false);
+      setNewName(''); setNewDate(''); setCoverPreview(null); setCoverFile(null);
+    } catch { /* ignore */ }
+    setBusy(false);
   }
 
   return (
-    <div className="flex flex-col flex-1" style={{ background: 'var(--cream)', position: 'relative', overflow: 'hidden' }}>
-
-      {/* Header */}
+    <div className="flex flex-col flex-1" style={{ background: 'var(--cream)' }}>
       <header style={{ flexShrink: 0 }}>
         <StatusBar />
-        <div style={{ padding: '0 18px 14px' }}>
-          <h1 className="font-display" style={{ fontSize: 30, fontWeight: 600, color: 'var(--ink)', margin: 0, lineHeight: 1 }}>Saved</h1>
-          {!loading && items.length > 0 && (
-            <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '6px 0 0' }}>
-              {items.length} {items.length === 1 ? 'place' : 'places'} you want to try
-            </p>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 18px 14px' }}>
+          <div>
+            <h1 className="font-display" style={{ fontSize: 30, fontWeight: 600, color: 'var(--ink)', margin: 0, lineHeight: 1 }}>Collections</h1>
+            {!loading && collections.length > 0 && (
+              <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '6px 0 0' }}>
+                {collections.length} {collections.length === 1 ? 'list' : 'lists'}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setCreating(true)}
+            style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--tomato)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(194,55,31,0.35)' }}>
+            <IconPlus size={20} color="white" />
+          </button>
         </div>
       </header>
 
-      {/* List */}
       <main className="flex-1 overflow-y-auto" style={{ padding: '4px 14px', paddingBottom: 'calc(16px + 64px)' }}>
+
+        {/* Create list form */}
+        {creating && (
+          <div style={{ background: 'white', borderRadius: 16, padding: 16, marginBottom: 16, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', margin: '0 0 12px' }}>New list</p>
+
+            {/* Cover photo */}
+            <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+            <button onClick={() => fileRef.current?.click()}
+              style={{ width: '100%', height: 120, borderRadius: 12, border: '1.5px dashed #D3D1C7', background: coverPreview ? 'transparent' : '#F7F6F3', cursor: 'pointer', overflow: 'hidden', position: 'relative', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 6 }}>
+              {coverPreview ? (
+                <>
+                  <img src={coverPreview} alt="cover" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 12, color: 'white', fontWeight: 600, fontFamily: 'inherit' }}>Change photo</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <IconCamera size={24} color="#B0AFA9" />
+                  <span style={{ fontSize: 12, color: '#B0AFA9', fontFamily: 'inherit' }}>Add cover photo</span>
+                </>
+              )}
+            </button>
+
+            <input
+              autoFocus
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') createCollection(); if (e.key === 'Escape') setCreating(false); }}
+              placeholder="List name…"
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E8E7E3', fontSize: 15, fontFamily: 'inherit', outline: 'none', background: 'var(--cream)', color: 'var(--ink)', boxSizing: 'border-box', marginBottom: 10 }}
+            />
+
+            {/* Date */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #E8E7E3', background: 'var(--cream)', marginBottom: 12 }}>
+              <IconCalendar size={16} color="#B0AFA9" />
+              <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)}
+                style={{ flex: 1, outline: 'none', background: 'transparent', border: 'none', fontSize: 14, fontFamily: 'inherit', color: newDate ? 'var(--ink)' : '#B0AFA9' }} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => { setCreating(false); setNewName(''); setNewDate(''); setCoverPreview(null); setCoverFile(null); }}
+                style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: '1.5px solid #E8E7E3', background: 'white', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-soft)' }}>
+                Cancel
+              </button>
+              <button onClick={createCollection} disabled={!newName.trim() || busy}
+                style={{ flex: 1, padding: '9px 0', borderRadius: 10, border: 'none', background: newName.trim() ? 'var(--tomato)' : '#D3D1C7', cursor: newName.trim() ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'white' }}>
+                {busy ? 'Creating…' : 'Create'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="grid grid-cols-2 gap-3">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--cream)', boxShadow: 'var(--shadow-warm-sm)' }}>
-                <div style={{ height: 100, background: 'var(--cream-100)' }} />
+              <div key={i} style={{ borderRadius: 'var(--radius)', overflow: 'hidden', background: 'white', boxShadow: 'var(--shadow-warm-sm)' }}>
+                <div style={{ height: 100, background: '#F0EFEC' }} />
                 <div style={{ padding: '10px 11px 12px' }}>
-                  <div style={{ height: 9, borderRadius: 5, background: 'var(--cream-200)', marginBottom: 7, width: '75%' }} />
-                  <div style={{ height: 7, borderRadius: 5, background: 'var(--cream-200)', width: '50%' }} />
+                  <div style={{ height: 9, borderRadius: 5, background: '#F0EFEC', marginBottom: 7, width: '75%' }} />
+                  <div style={{ height: 7, borderRadius: 5, background: '#F0EFEC', width: '50%' }} />
                 </div>
               </div>
             ))}
           </div>
-        ) : items.length === 0 ? (
+        ) : collections.length === 0 ? (
           <div className="flex flex-col items-center justify-center" style={{ paddingTop: 90, gap: 14 }}>
             <div style={{ width: 76, height: 76, borderRadius: '50%', background: 'var(--tomato-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <IconHeart size={34} color="var(--tomato)" />
+              <IconBookmark size={34} color="var(--tomato)" />
             </div>
-            <p className="font-display" style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>No saved places yet</p>
-            <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', textAlign: 'center', lineHeight: 1.6, maxWidth: 240, textWrap: 'balance' }}>
-              Tap the heart on any restaurant to keep it here for later.
+            <p className="font-display" style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>No lists yet</p>
+            <p style={{ fontSize: 13.5, color: 'var(--ink-soft)', textAlign: 'center', lineHeight: 1.6, maxWidth: 240 }}>
+              Tap the bookmark icon on any restaurant to save it to a list.
             </p>
+            <button onClick={() => setCreating(true)}
+              style={{ marginTop: 4, padding: '10px 24px', borderRadius: 99, background: 'var(--tomato)', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'white', boxShadow: '0 4px 14px rgba(194,55,31,0.35)' }}>
+              Create your first list
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            {items.map((item, i) => {
-              const photo = photoUrl(item.name, item.lat, item.lng);
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleTap(item)}
-                  style={{ borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--cream)', boxShadow: 'var(--shadow-warm-sm)', textAlign: 'left', cursor: 'pointer', padding: 0, display: 'block', width: '100%' }}
-                >
-                  <div style={{ height: 104, background: COLORS[i % COLORS.length], position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <span aria-hidden style={{ fontSize: 30, opacity: 0.5 }}>🍽️</span>
-                    {photo && (
-                      <img src={photo} alt={`${item.name} photo`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', position: 'absolute', inset: 0 }}
-                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                    )}
-                    {item.rating && (
-                      <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(25,16,16,0.62)', backdropFilter: 'blur(4px)', borderRadius: 99, padding: '3px 8px', display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: 10, color: '#F5A623' }}>★</span>
-                        <span style={{ fontSize: 10.5, color: 'white', fontWeight: 600 }}>{item.rating.toFixed(1)}</span>
-                      </div>
-                    )}
+            {collections.map((col, i) => (
+              <Link key={col.id} href={`/saved/${col.id}`} style={{ textDecoration: 'none' }}>
+                <div style={{ borderRadius: 'var(--radius)', overflow: 'hidden', background: 'white', boxShadow: 'var(--shadow-warm-sm)' }}>
+                  {/* Cover */}
+                  <div style={{ height: 100, background: BG_COLORS[i % BG_COLORS.length], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 44, position: 'relative', overflow: 'hidden' }}>
+                    {col.cover_photo_url
+                      ? <img src={col.cover_photo_url} alt={col.name} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : col.emoji}
                   </div>
                   <div style={{ padding: '10px 11px 12px' }}>
-                    <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, lineHeight: 1.3,
-                      overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                      {item.name}
+                    <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: '0 0 3px', lineHeight: 1.2 }}>{col.name}</p>
+                    <p style={{ fontSize: 11, color: 'var(--ink-mute)', margin: 0 }}>
+                      {col.count} {col.count === 1 ? 'place' : 'places'}
+                      {col.target_date ? ` · ${new Date(col.target_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
                     </p>
-                    {item.cuisineType ? (
-                      <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{item.cuisineType}</span>
-                    ) : item.address ? (
-                      <span style={{ fontSize: 11, color: 'var(--ink-mute)', display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <IconMapPin size={11} color="var(--ink-mute)" />{item.address.split(',')[0]}
-                      </span>
-                    ) : null}
                   </div>
-                </button>
-              );
-            })}
+                </div>
+              </Link>
+            ))}
           </div>
         )}
       </main>
-
-      {/* Detail sheet overlay */}
-      {selectedPin && (
-        <div
-          style={{ position: 'absolute', inset: 0, zIndex: 30, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}
-          onClick={e => { if (e.target === e.currentTarget) setSelectedPin(null); }}
-        >
-          {/* Backdrop */}
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)' }} onClick={() => setSelectedPin(null)} />
-
-          {/* Sheet */}
-          <div style={{
-            position: 'relative', zIndex: 1,
-            background: 'var(--cream)',
-            borderRadius: '22px 22px 0 0',
-            boxShadow: '0 -8px 32px rgba(60,22,14,0.18)',
-            display: 'flex', flexDirection: 'column',
-            height: '88%',
-            animation: 'slideUp 0.28s cubic-bezier(0.32,0.72,0,1)',
-          }}>
-            {/* Drag handle */}
-            <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4, flexShrink: 0 }}>
-              <div style={{ width: 36, height: 4, borderRadius: 9999, background: '#D3D1C7' }} />
-            </div>
-
-            {/* Header */}
-            <div style={{ padding: '4px 16px 10px', flexShrink: 0 }}>
-              <button
-                onClick={() => setSelectedPin(null)}
-                style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 8px', fontFamily: 'inherit' }}>
-                <IconArrowLeft size={17} color="#E24B4A" />
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#E24B4A' }}>Back to saved</span>
-              </button>
-              <p className="font-display" style={{ fontSize: 23, fontWeight: 600, color: 'var(--ink)', margin: '0 0 4px', lineHeight: 1.15 }}>
-                {selectedPin.name}
-              </p>
-              {selectedPin.cuisineType && (
-                <p style={{ fontSize: 12, color: '#888780', margin: 0 }}>{selectedPin.cuisineType}</p>
-              )}
-            </div>
-
-            <div style={{ height: 1, background: '#F0EFEC', flexShrink: 0 }} />
-
-            {/* Tabs content */}
-            <RestaurantDetailTabs
-              key={selectedPin.id}
-              pin={selectedPin}
-              details={details}
-              detailsLoading={detailsLoading}
-              userLocation={userLocation}
-              suggestions={suggestions}
-              suggestionsLoading={suggestionsLoading}
-              loadSuggestions={loadSuggestions}
-              onSelectSuggestion={sug => setSelectedPin(sug)}
-              showToast={showToast}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Toast */}
-      {toast && (
-        <div style={{
-          position: 'absolute', bottom: 90, left: '50%', transform: 'translateX(-50%)', zIndex: 50,
-          background: toast.ok ? 'var(--tomato)' : '#E24B4A', color: 'white',
-          borderRadius: 99, padding: '8px 18px', fontSize: 13, fontWeight: 600,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.2)', whiteSpace: 'nowrap',
-        }}>
-          {toast.msg}
-        </div>
-      )}
-
-      <style>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%) }
-          to   { transform: translateY(0) }
-        }
-      `}</style>
     </div>
   );
 }
